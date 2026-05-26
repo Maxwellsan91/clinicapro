@@ -6,13 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ServicoForm } from "@/features/servicos/components/ServicoForm";
 import { findServicoById } from "@/features/servicos/repository";
 import { TENANT_ID } from "@/constants";
+import { serializeDecimal } from "@/lib/utils";
 
 interface Props { params: Promise<{ id: string }> }
 
 export default async function EditarServicoPage({ params }: Props) {
   const { id } = await params;
-  const servico = await findServicoById(id, TENANT_ID);
-  if (!servico) notFound();
+  const raw = await findServicoById(id, TENANT_ID);
+  if (!raw) notFound();
+  const servico = serializeDecimal(raw)!
 
   return (
     <div>

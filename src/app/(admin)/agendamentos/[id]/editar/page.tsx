@@ -9,6 +9,7 @@ import { findAllClientes } from "@/features/clientes/repository";
 import { findAllColaboradores } from "@/features/colaboradores/repository";
 import { findAllServicos } from "@/features/servicos/repository";
 import { TENANT_ID } from "@/constants";
+import { serializeDecimal } from "@/lib/utils";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -17,14 +18,17 @@ interface Props {
 export default async function EditarAgendamentoPage({ params }: Props) {
   const { id } = await params;
 
-  const [agendamento, clientes, colaboradores, servicos] = await Promise.all([
+  const [agendamentoRaw, clientes, colaboradores, servicosRaw] = await Promise.all([
     findAgendamentoById(id, TENANT_ID),
     findAllClientes(TENANT_ID),
     findAllColaboradores(TENANT_ID),
     findAllServicos(TENANT_ID),
   ]);
 
-  if (!agendamento) notFound();
+  if (!agendamentoRaw) notFound();
+
+  const agendamento = serializeDecimal(agendamentoRaw);
+  const servicos = serializeDecimal(servicosRaw);
 
   return (
     <div>

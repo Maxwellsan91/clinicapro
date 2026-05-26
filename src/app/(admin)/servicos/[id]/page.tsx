@@ -8,15 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { findServicoById } from "@/features/servicos/repository";
 import { TENANT_ID } from "@/constants";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, serializeDecimal } from "@/lib/utils";
 import { Edit, ArrowLeft } from "lucide-react";
 
 interface Props { params: Promise<{ id: string }> }
 
 export default async function ServicoDetailPage({ params }: Props) {
   const { id } = await params;
-  const servico = await findServicoById(id, TENANT_ID);
-  if (!servico) notFound();
+  const raw = await findServicoById(id, TENANT_ID);
+  if (!raw) notFound();
+  const servico = serializeDecimal(raw)!
 
   return (
     <div>

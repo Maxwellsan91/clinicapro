@@ -7,10 +7,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ServicoList } from "@/features/servicos/components/ServicoList";
 import { findAllServicos } from "@/features/servicos/repository";
 import { TENANT_ID } from "@/constants";
+import { serializeDecimal } from "@/lib/utils";
 import { Plus } from "lucide-react";
 
 export default async function ServicosPage() {
-  const servicos = await findAllServicos(TENANT_ID);
+  const raw = await findAllServicos(TENANT_ID);
+  const servicos = serializeDecimal(raw);
 
   return (
     <div>

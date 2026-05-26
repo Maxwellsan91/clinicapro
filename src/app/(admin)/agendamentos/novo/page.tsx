@@ -7,15 +7,16 @@ import { findAllClientes } from "@/features/clientes/repository";
 import { findAllColaboradores } from "@/features/colaboradores/repository";
 import { findAllServicos } from "@/features/servicos/repository";
 import { TENANT_ID } from "@/constants";
+import { serializeDecimal } from "@/lib/utils";
 
 export default async function NovoAgendamentoPage() {
-  const [clientes, colaboradores, servicos] = await Promise.all([
+  const [clientes, colaboradores, servicosRaw] = await Promise.all([
     findAllClientes(TENANT_ID),
     findAllColaboradores(TENANT_ID),
     findAllServicos(TENANT_ID),
   ]);
 
-  const servicosAtivos = servicos.filter((s) => s.isActive);
+  const servicosAtivos = serializeDecimal(servicosRaw.filter((s) => s.isActive));
 
   return (
     <div>

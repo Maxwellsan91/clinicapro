@@ -9,6 +9,7 @@ import { AgendamentoList } from "@/features/agendamentos/components/AgendamentoL
 import { AgendamentoFilters } from "@/features/agendamentos/components/AgendamentoFilters";
 import { findAllAgendamentos } from "@/features/agendamentos/repository";
 import { TENANT_ID } from "@/constants";
+import { serializeDecimal } from "@/lib/utils";
 import { Plus, Calendar } from "lucide-react";
 
 interface PageProps {
@@ -18,7 +19,8 @@ interface PageProps {
 export default async function AgendamentosPage({ searchParams }: PageProps) {
   const { status } = await searchParams;
 
-  const todos = await findAllAgendamentos(TENANT_ID);
+  const raw = await findAllAgendamentos(TENANT_ID);
+  const todos = serializeDecimal(raw);
 
   const agendamentos = status
     ? todos.filter((a) => a.status === status)
