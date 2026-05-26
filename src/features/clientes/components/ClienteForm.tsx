@@ -31,15 +31,15 @@ export function ClienteForm({ cliente }: ClienteFormProps) {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="email">E-mail</Label>
-          <Input id="email" name="email" type="email" defaultValue={cliente?.email ?? ""} placeholder="email@exemplo.com" />
+          <Input id="email" name="email" type="email" defaultValue={cliente?.email ?? ""} placeholder="email@exemplo.pt" />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="phone">Telefone</Label>
-          <Input id="phone" name="phone" defaultValue={cliente?.phone ?? ""} placeholder="(11) 99999-9999" />
+          <Input id="phone" name="phone" defaultValue={cliente?.phone ?? ""} placeholder="+351 912 345 678" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="cpf">CPF</Label>
-          <Input id="cpf" name="cpf" defaultValue={cliente?.cpf ?? ""} placeholder="000.000.000-00" />
+          <Label htmlFor="cpf">NIF</Label>
+          <Input id="cpf" name="cpf" defaultValue={cliente?.cpf ?? ""} placeholder="123 456 789" />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="birthDate">Data de Nascimento</Label>
@@ -52,7 +52,7 @@ export function ClienteForm({ cliente }: ClienteFormProps) {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="address">Endereço</Label>
-          <Input id="address" name="address" defaultValue={cliente?.address ?? ""} placeholder="Rua, número, bairro" />
+          <Input id="address" name="address" defaultValue={cliente?.address ?? ""} placeholder="Rua, número, localidade, código postal" />
         </div>
       </div>
       <div className="space-y-1.5">

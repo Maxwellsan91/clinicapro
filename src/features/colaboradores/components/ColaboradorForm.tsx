@@ -32,11 +32,11 @@ export function ColaboradorForm({ colaborador }: ColaboradorFormProps) {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="email">E-mail</Label>
-          <Input id="email" name="email" type="email" defaultValue={colaborador?.email ?? ""} placeholder="email@exemplo.com" />
+          <Input id="email" name="email" type="email" defaultValue={colaborador?.email ?? ""} placeholder="email@exemplo.pt" />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="phone">Telefone</Label>
-          <Input id="phone" name="phone" defaultValue={colaborador?.phone ?? ""} placeholder="(11) 99999-9999" />
+          <Input id="phone" name="phone" defaultValue={colaborador?.phone ?? ""} placeholder="+351 912 345 678" />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="role">Cargo *</Label>

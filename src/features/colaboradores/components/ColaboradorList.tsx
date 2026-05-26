@@ -18,7 +18,7 @@ function DeleteButton({ id }: { id: string }) {
       disabled={isPending}
       className="text-red-500 hover:text-red-700 hover:bg-red-50"
       onClick={() => {
-        if (!confirm("Tem certeza que deseja excluir este colaborador?")) return;
+        if (!confirm("Tem a certeza que pretende eliminar este colaborador?")) return;
         startTransition(async () => { await deleteColaboradorAction(id); });
       }}
     >

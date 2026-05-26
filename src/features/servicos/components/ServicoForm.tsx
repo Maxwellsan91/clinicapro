@@ -45,7 +45,7 @@ export function ServicoForm({ servico }: ServicoFormProps) {
           <Input id="duration" name="duration" type="number" min={1} defaultValue={servico?.duration} required placeholder="60" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="price">Preço (R$) *</Label>
+          <Label htmlFor="price">Preço (€) *</Label>
           <Input id="price" name="price" type="number" step="0.01" min={0} defaultValue={servico?.price.toString()} required placeholder="150.00" />
         </div>
         <div className="space-y-1.5">

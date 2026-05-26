@@ -6,14 +6,14 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("pt-BR", {
+  return new Intl.NumberFormat("pt-PT", {
     style: "currency",
-    currency: "BRL",
+    currency: "EUR",
   }).format(value);
 }
 
 export function formatDate(date: Date | string): string {
-  return new Intl.DateTimeFormat("pt-BR").format(new Date(date));
+  return new Intl.DateTimeFormat("pt-PT").format(new Date(date));
 }
 
 /**

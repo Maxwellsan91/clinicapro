@@ -9,7 +9,6 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log("🌱 Iniciando seed...");
 
-  // Tenant já criado via SQL, apenas garantir que existe
   const tenant = await prisma.tenant.upsert({
     where: { id: "tenant-demo" },
     update: {},
@@ -30,8 +29,8 @@ async function main() {
         id: "col-001",
         tenantId: "tenant-demo",
         name: "Dra. Ana Lima",
-        email: "ana.lima@clinica.com",
-        phone: "(11) 99001-0001",
+        email: "ana.lima@clinica.pt",
+        phone: "+351 912 001 001",
         role: "Fisioterapeuta",
         specialty: "Fisioterapia Ortopédica",
       },
@@ -42,9 +41,9 @@ async function main() {
       create: {
         id: "col-002",
         tenantId: "tenant-demo",
-        name: "Carlos Souza",
-        email: "carlos.souza@clinica.com",
-        phone: "(11) 99001-0002",
+        name: "Carlos Sousa",
+        email: "carlos.sousa@clinica.pt",
+        phone: "+351 912 001 002",
         role: "Instrutor de Pilates",
         specialty: "Pilates Clínico",
       },
@@ -56,8 +55,8 @@ async function main() {
         id: "col-003",
         tenantId: "tenant-demo",
         name: "Mariana Costa",
-        email: "mariana.costa@clinica.com",
-        phone: "(11) 99001-0003",
+        email: "mariana.costa@clinica.pt",
+        phone: "+351 912 001 003",
         role: "Massoterapeuta",
         specialty: "Massagem Terapêutica",
       },
@@ -65,7 +64,7 @@ async function main() {
   ]);
   console.log(`✅ Colaboradores: ${colaboradores.length} criados`);
 
-  // Serviços
+  // Serviços (preços em EUR)
   const servicos = await Promise.all([
     prisma.service.upsert({
       where: { id: "svc-001" },
@@ -76,7 +75,7 @@ async function main() {
         name: "Fisioterapia Ortopédica",
         description: "Tratamento de lesões musculoesqueléticas",
         duration: 60,
-        price: 180.0,
+        price: 65.0,
         category: "Fisioterapia",
         isActive: true,
       },
@@ -88,9 +87,9 @@ async function main() {
         id: "svc-002",
         tenantId: "tenant-demo",
         name: "Pilates Solo",
-        description: "Aula de pilates no solo com colchonete",
+        description: "Aula de pilates no solo",
         duration: 50,
-        price: 120.0,
+        price: 45.0,
         category: "Pilates",
         isActive: true,
       },
@@ -104,7 +103,7 @@ async function main() {
         name: "Massagem Relaxante",
         description: "Massagem corporal relaxante 60 minutos",
         duration: 60,
-        price: 150.0,
+        price: 55.0,
         category: "Massagem",
         isActive: true,
       },
@@ -118,7 +117,7 @@ async function main() {
         name: "RPG",
         description: "Reeducação Postural Global",
         duration: 60,
-        price: 200.0,
+        price: 70.0,
         category: "Fisioterapia",
         isActive: true,
       },
@@ -126,7 +125,7 @@ async function main() {
   ]);
   console.log(`✅ Serviços: ${servicos.length} criados`);
 
-  // Clientes
+  // Clientes com NIF e telefones portugueses
   const clientes = await Promise.all([
     prisma.client.upsert({
       where: { id: "cli-001" },
@@ -135,10 +134,11 @@ async function main() {
         id: "cli-001",
         tenantId: "tenant-demo",
         name: "João Pereira",
-        email: "joao.pereira@email.com",
-        phone: "(11) 98000-1001",
-        cpf: "123.456.789-00",
-        notes: "Paciente com histórico de lombalgia",
+        email: "joao.pereira@email.pt",
+        phone: "+351 916 100 001",
+        cpf: "123 456 789",
+        address: "Rua das Flores, 12, 1200-100 Lisboa",
+        notes: "Utente com historial de lombalgias",
       },
     }),
     prisma.client.upsert({
@@ -148,9 +148,10 @@ async function main() {
         id: "cli-002",
         tenantId: "tenant-demo",
         name: "Maria Santos",
-        email: "maria.santos@email.com",
-        phone: "(11) 98000-1002",
-        cpf: "987.654.321-00",
+        email: "maria.santos@email.pt",
+        phone: "+351 916 100 002",
+        cpf: "987 654 321",
+        address: "Avenida da Liberdade, 45, 4000-200 Porto",
       },
     }),
     prisma.client.upsert({
@@ -160,14 +161,14 @@ async function main() {
         id: "cli-003",
         tenantId: "tenant-demo",
         name: "Pedro Oliveira",
-        email: "pedro.oliveira@email.com",
-        phone: "(11) 98000-1003",
+        email: "pedro.oliveira@email.pt",
+        phone: "+351 916 100 003",
       },
     }),
   ]);
   console.log(`✅ Clientes: ${clientes.length} criados`);
 
-  // Agendamentos de exemplo para hoje
+  // Agendamentos de hoje
   const hoje = new Date();
   const agendamentos = await Promise.all([
     prisma.appointment.upsert({
@@ -227,4 +228,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-

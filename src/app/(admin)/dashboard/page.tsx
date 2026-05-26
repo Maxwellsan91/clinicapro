@@ -4,7 +4,7 @@ import { Users, UserCog, Briefcase, Calendar, TrendingUp, Clock, CheckCircle, XC
 
 const stats = [
   {
-    title: "Total de Clientes",
+    title: "Total de Utentes",
     value: "248",
     description: "+12 este mês",
     icon: Users,
@@ -22,7 +22,7 @@ const stats = [
     textColor: "text-purple-600",
   },
   {
-    title: "Serviços Ativos",
+    title: "Serviços Activos",
     value: "24",
     description: "Fisio, Pilates, Massagem",
     icon: Briefcase,
@@ -31,9 +31,9 @@ const stats = [
     textColor: "text-green-600",
   },
   {
-    title: "Agendamentos Hoje",
+    title: "Marcações Hoje",
     value: "32",
-    description: "8 confirmados",
+    description: "8 confirmadas",
     icon: Calendar,
     color: "bg-orange-500",
     bgLight: "bg-orange-50",
@@ -92,7 +92,7 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="w-5 h-5 text-gray-500" />
-                Próximos Agendamentos
+                Próximas Marcações
               </CardTitle>
             </CardHeader>
             <CardContent>

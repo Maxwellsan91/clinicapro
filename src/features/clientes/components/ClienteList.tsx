@@ -18,7 +18,7 @@ function DeleteButton({ id }: { id: string }) {
   const [isPending, startTransition] = useTransition();
 
   function handleDelete() {
-    if (!confirm("Tem certeza que deseja excluir este cliente?")) return;
+    if (!confirm("Tem a certeza que pretende eliminar este utente?")) return;
     startTransition(async () => {
       await deleteClienteAction(id);
     });
@@ -35,8 +35,8 @@ export function ClienteList({ clientes }: ClienteListProps) {
   if (clientes.length === 0) {
     return (
       <div className="text-center py-12 text-gray-500">
-        <p className="text-lg font-medium">Nenhum cliente encontrado</p>
-        <p className="text-sm mt-1">Comece adicionando seu primeiro cliente</p>
+        <p className="text-lg font-medium">Nenhum utente encontrado</p>
+        <p className="text-sm mt-1">Comece por adicionar o primeiro utente</p>
       </div>
     );
   }
@@ -48,7 +48,7 @@ export function ClienteList({ clientes }: ClienteListProps) {
           <TableHead>Nome</TableHead>
           <TableHead>E-mail</TableHead>
           <TableHead>Telefone</TableHead>
-          <TableHead>Cadastrado em</TableHead>
+          <TableHead>Registado em</TableHead>
           <TableHead className="text-right">Ações</TableHead>
         </TableRow>
       </TableHeader>

@@ -33,7 +33,7 @@ export function Sidebar() {
         </div>
         <div>
           <p className="font-bold text-white text-sm leading-tight">ClinicaPro</p>
-          <p className="text-slate-400 text-xs">Gestão Clínica</p>
+          <p className="text-slate-400 text-xs">Gestão de Clínica</p>
         </div>
       </div>
 
@@ -68,7 +68,7 @@ export function Sidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">Admin</p>
-            <p className="text-xs text-slate-400 truncate">admin@clinica.com</p>
+            <p className="text-xs text-slate-400 truncate">admin@clinica.pt</p>
           </div>
           <button className="text-slate-400 hover:text-white transition-colors">
             <LogOut className="w-4 h-4" />

@@ -23,7 +23,7 @@ type AgendamentoWithRelations = Appointment & {
 };
 
 function formatDateTime(date: Date) {
-  return new Intl.DateTimeFormat("pt-BR", {
+  return new Intl.DateTimeFormat("pt-PT", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -33,7 +33,7 @@ function formatDateTime(date: Date) {
 }
 
 function formatTime(date: Date) {
-  return new Intl.DateTimeFormat("pt-BR", {
+  return new Intl.DateTimeFormat("pt-PT", {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(date));
@@ -50,7 +50,7 @@ function CancelButton({ id, status }: { id: string; status: string }) {
       className="text-orange-500 hover:text-orange-700 hover:bg-orange-50"
       title="Cancelar agendamento"
       onClick={() => {
-        if (!confirm("Deseja cancelar este agendamento?")) return;
+        if (!confirm("Tem a certeza que pretende cancelar este agendamento?")) return;
         startTransition(async () => {
           await cancelAgendamentoAction(id);
         });
@@ -71,7 +71,7 @@ function DeleteButton({ id }: { id: string }) {
       className="text-red-500 hover:text-red-700 hover:bg-red-50"
       title="Excluir agendamento"
       onClick={() => {
-        if (!confirm("Tem certeza que deseja excluir este agendamento?")) return;
+        if (!confirm("Tem a certeza que pretende eliminar este agendamento?")) return;
         startTransition(async () => {
           await deleteAgendamentoAction(id);
         });

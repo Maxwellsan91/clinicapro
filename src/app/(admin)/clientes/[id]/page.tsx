@@ -48,10 +48,10 @@ export default async function ClienteDetailPage({ params }: Props) {
                 ["Nome", cliente.name],
                 ["E-mail", cliente.email || "—"],
                 ["Telefone", cliente.phone || "—"],
-                ["CPF", cliente.cpf || "—"],
+                ["NIF", cliente.cpf || "—"],
                 ["Data de Nascimento", cliente.birthDate ? formatDate(cliente.birthDate) : "—"],
                 ["Endereço", cliente.address || "—"],
-                ["Cadastrado em", formatDate(cliente.createdAt)],
+                ["Registado em", formatDate(cliente.createdAt)],
               ].map(([label, value]) => (
                 <div key={label} className="space-y-1">
                   <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</dt>

@@ -5,7 +5,8 @@ export const SERVICE_CATEGORIES = [
   "Pilates",
   "Massagem",
   "RPG",
-  "Acupuntura",
+  "Acupunctura",
+  "Osteopatia",
   "Outros",
 ];
 
@@ -15,13 +16,12 @@ export const COLLABORATOR_ROLES = [
   "Massoterapeuta",
   "Recepcionista",
   "Administrador",
+  "Osteopata",
 ];
 
 export const APPOINTMENT_STATUS = {
   scheduled: "Agendado",
-  confirmed: "Confirmado",
   completed: "Concluído",
   cancelled: "Cancelado",
   no_show: "Não compareceu",
 };
-
