@@ -21,6 +21,7 @@ model Tenant {
   collaborators Collaborator[]
   services      Service[]
   appointments  Appointment[]
+  payments      Payment[]
 }
 
 model Client {
@@ -37,6 +38,7 @@ model Client {
   updatedAt    DateTime      @updatedAt
   tenant       Tenant        @relation(fields: [tenantId], references: [id])
   appointments Appointment[]
+  payments     Payment[]
 
   @@index([tenantId])
 }
@@ -90,6 +92,7 @@ model Appointment {
   client         Client       @relation(fields: [clientId], references: [id])
   collaborator   Collaborator @relation(fields: [collaboratorId], references: [id])
   service        Service      @relation(fields: [serviceId], references: [id])
+  payments       Payment[]
 
   @@index([tenantId])
   @@index([clientId])
@@ -97,3 +100,31 @@ model Appointment {
   @@index([serviceId])
   @@index([startDateTime])
 }
+
+model Payment {
+  id                  String      @id @default(cuid())
+  tenantId            String
+  clientId            String
+  appointmentId       String?
+  amount              Decimal     @db.Decimal(10, 2)
+  paymentMethod       String?
+  status              String      @default("pending")
+  paidAt              DateTime?
+  dueDate             DateTime?
+  notes               String?
+  invoiceStatus       String      @default("not_issued")
+  invoiceExternalUrl  String?
+  invoiceNumber       String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  tenant              Tenant      @relation(fields: [tenantId], references: [id])
+  client              Client      @relation(fields: [clientId], references: [id])
+  appointment         Appointment? @relation(fields: [appointmentId], references: [id])
+
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([appointmentId])
+  @@index([status])
+  @@index([dueDate])
+}
+

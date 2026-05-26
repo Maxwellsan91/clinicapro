@@ -10,15 +10,17 @@ import {
   Calendar,
   Activity,
   LogOut,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/clientes", label: "Clientes", icon: Users },
-  { href: "/colaboradores", label: "Colaboradores", icon: UserCog },
-  { href: "/servicos", label: "Serviços", icon: Briefcase },
-  { href: "/agendamentos", label: "Agendamentos", icon: Calendar },
+  { href: "/dashboard",     label: "Dashboard",     icon: LayoutDashboard },
+  { href: "/clientes",      label: "Utentes",        icon: Users },
+  { href: "/colaboradores", label: "Colaboradores",  icon: UserCog },
+  { href: "/servicos",      label: "Serviços",        icon: Briefcase },
+  { href: "/agendamentos",  label: "Agendamentos",   icon: Calendar },
+  { href: "/pagamentos",    label: "Pagamentos",     icon: CreditCard },
 ];
 
 export function Sidebar() {
