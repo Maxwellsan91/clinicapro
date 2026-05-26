@@ -1,7 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
-
-export const supabase = createClient(supabaseUrl, supabaseKey);
-
+// Re-exportação para compatibilidade legacy
+// Novos ficheiros devem usar @/lib/supabase/client ou @/lib/supabase/server
+export { createClient } from "./supabase/client";

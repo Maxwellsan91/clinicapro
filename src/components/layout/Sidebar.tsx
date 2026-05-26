@@ -9,10 +9,10 @@ import {
   Briefcase,
   Calendar,
   Activity,
-  LogOut,
   CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LogoutButton } from "@/features/auth/components/LogoutButton";
 
 const navItems = [
   { href: "/dashboard",     label: "Dashboard",     icon: LayoutDashboard },
@@ -23,8 +23,16 @@ const navItems = [
   { href: "/pagamentos",    label: "Pagamentos",     icon: CreditCard },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  userEmail?: string | null;
+}
+
+export function Sidebar({ userEmail }: SidebarProps) {
   const pathname = usePathname();
+
+  const initials = userEmail
+    ? userEmail.slice(0, 2).toUpperCase()
+    : "AD";
 
   return (
     <aside className="flex flex-col w-64 min-h-screen bg-slate-900 text-white">
@@ -62,22 +70,23 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="px-3 py-4 border-t border-slate-700">
+      {/* Footer — utilizador + logout */}
+      <div className="px-3 py-4 border-t border-slate-700 space-y-1">
         <div className="flex items-center gap-3 px-3 py-2 rounded-lg">
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-700 text-slate-300 text-xs font-bold">
-            AD
+          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-bold shrink-0">
+            {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">Admin</p>
-            <p className="text-xs text-slate-400 truncate">admin@clinica.pt</p>
+            <p className="text-sm font-medium text-white truncate">
+              {userEmail ? userEmail.split("@")[0] : "Admin"}
+            </p>
+            <p className="text-xs text-slate-400 truncate">
+              {userEmail ?? "admin@clinica.pt"}
+            </p>
           </div>
-          <button className="text-slate-400 hover:text-white transition-colors">
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
+        <LogoutButton />
       </div>
     </aside>
   );
 }
-
