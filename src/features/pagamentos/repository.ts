@@ -7,7 +7,8 @@ const includeRelations = {
     select: {
       id: true,
       startDateTime: true,
-      service: { select: { id: true, name: true } },
+      endDateTime: true,
+      service: { select: { id: true, name: true, duration: true, price: true } },
     },
   },
 } as const;
