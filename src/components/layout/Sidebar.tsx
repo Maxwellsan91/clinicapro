@@ -52,7 +52,7 @@ export function Sidebar({ userEmail, role = "user" }: SidebarProps) {
     : "AD";
 
   return (
-    <aside className="flex flex-col w-64 min-h-screen bg-slate-900 text-white">
+    <aside className="hidden md:flex flex-col w-64 min-h-screen bg-slate-900 text-white">
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-700">
         <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-blue-500">

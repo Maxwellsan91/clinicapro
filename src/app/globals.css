@@ -15,6 +15,16 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
+/* Safe area para iOS (home bar / notch) */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Tap highlight em mobile */
+a, button {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Fallback: make content visible if framer-motion hasn't animated after 3s */
 @keyframes forceVisible {
   to { opacity: 1 !important; transform: none !important; }
