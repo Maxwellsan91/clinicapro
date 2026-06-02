@@ -10,6 +10,10 @@ function createPrismaClient() {
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false },
+    // Limitar conexões por instância serverless para não esgotar o pool do Supabase
+    max: 2,
+    idleTimeoutMillis: 10_000,   // fechar conexões inativas após 10s
+    connectionTimeoutMillis: 10_000,
   });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
