@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { Suspense } from "react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,22 +19,28 @@ import {
   CheckCircle,
   AlertCircle,
   TrendingUp,
+  Trash2,
 } from "lucide-react";
 
 interface PageProps {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; deleted?: string }>;
 }
 
 export default async function PagamentosPage({ searchParams }: PageProps) {
-  const { status } = await searchParams;
+  const { status, deleted } = await searchParams;
+  const showDeleted = deleted === "1";
 
   const [rawAll, stats] = await Promise.all([
-    findAllPagamentos(TENANT_ID),
+    findAllPagamentos(TENANT_ID, showDeleted),
     getPagamentosStats(TENANT_ID),
   ]);
 
   const todos = serializeDecimal(rawAll);
-  const pagamentos = status ? todos.filter((p) => p.status === status) : todos;
+  const active = todos.filter((p) => !p.isDeleted);
+  const deletedList = todos.filter((p) => p.isDeleted);
+  const pagamentos = showDeleted
+    ? deletedList
+    : status ? active.filter((p) => p.status === status) : active;
 
   const totalRecebido = Number(stats.paid._sum.amount ?? 0);
   const totalPendente = Number(stats.pending._sum.amount ?? 0);
@@ -136,24 +141,26 @@ export default async function PagamentosPage({ searchParams }: PageProps) {
             <span className="text-sm text-gray-500">
               A mostrar <span className="font-semibold text-gray-700">{pagamentos.length}</span> pagamento{pagamentos.length !== 1 ? "s" : ""}
             </span>
+            <Link href={showDeleted ? "/pagamentos" : "/pagamentos?deleted=1"}
+              className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${showDeleted ? "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200" : "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"}`}>
+              <Trash2 className="w-3.5 h-3.5" />
+              {showDeleted ? "Ver activos" : `Eliminados (${deletedList.length})`}
+            </Link>
           </div>
           <div className="flex items-center gap-3">
-            <Suspense fallback={<div className="h-9 w-48 bg-gray-100 rounded-full animate-pulse" />}>
-              <PagamentoFilters />
-            </Suspense>
-            <Link href="/pagamentos/novo">
-              <Button className="gap-1.5 rounded-lg">
-                <Plus className="w-4 h-4" />
-                Novo Pagamento
-              </Button>
-            </Link>
+            {!showDeleted && <PagamentoFilters current={status ?? ""} />}
+            {!showDeleted && (
+              <Link href="/pagamentos/novo">
+                <Button className="gap-1.5 rounded-lg"><Plus className="w-4 h-4" />Novo Pagamento</Button>
+              </Link>
+            )}
           </div>
         </div>
 
         {/* ── Lista ── */}
         <Card className="overflow-hidden shadow-sm">
           <CardContent className="p-0">
-            <PagamentoList pagamentos={pagamentos} />
+            <PagamentoList pagamentos={pagamentos} showDeleted={showDeleted} />
           </CardContent>
         </Card>
 

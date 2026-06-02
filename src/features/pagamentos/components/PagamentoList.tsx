@@ -15,12 +15,14 @@ import {
   deletePagamentoAction,
   markAsPaidAction,
   markAsPendingAction,
+  restorePagamentoAction,
 } from "../actions";
 import { PaymentStatusBadge, InvoiceStatusBadge } from "./PaymentStatusBadge";
 import {
   PagamentoDetailSheet,
   type PagamentoDetail,
 } from "./PagamentoDetailSheet";
+import { RestoreButton } from "@/components/ui/RestoreButton";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import {
   Edit,
@@ -92,9 +94,10 @@ function DeleteButton({ id }: { id: string }) {
 
 interface PagamentoListProps {
   pagamentos: PagamentoDetail[];
+  showDeleted?: boolean;
 }
 
-export function PagamentoList({ pagamentos }: PagamentoListProps) {
+export function PagamentoList({ pagamentos, showDeleted = false }: PagamentoListProps) {
   const [selected, setSelected] = useState<PagamentoDetail | null>(null);
 
   if (pagamentos.length === 0) {
@@ -145,8 +148,8 @@ export function PagamentoList({ pagamentos }: PagamentoListProps) {
             return (
               <TableRow
                 key={p.id}
-                onClick={() => setSelected(p)}
-                className="cursor-pointer hover:bg-blue-50/40 transition-colors group"
+                onClick={() => !showDeleted && setSelected(p)}
+                className={`transition-colors group ${p.isDeleted ? "opacity-60 bg-red-50/30" : "cursor-pointer hover:bg-blue-50/40"}`}
               >
                 {/* Utente */}
                 <TableCell className="pl-5 py-3">
@@ -239,18 +242,21 @@ export function PagamentoList({ pagamentos }: PagamentoListProps) {
 
                 {/* Acções */}
                 <TableCell className="py-3 pr-4 text-right">
-                  <div
-                    className="flex items-center justify-end gap-0.5"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <MarkPaidButton id={p.id} status={p.status} />
-                    <MarkPendingButton id={p.id} status={p.status} />
-                    <Link href={`/pagamentos/${p.id}/editar`} onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar">
-                        <Edit className="w-3.5 h-3.5" />
-                      </Button>
-                    </Link>
-                    <DeleteButton id={p.id} />
+                  <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
+                    {p.isDeleted ? (
+                      <RestoreButton onRestore={() => restorePagamentoAction(p.id)} />
+                    ) : (
+                      <>
+                        <MarkPaidButton id={p.id} status={p.status} />
+                        <MarkPendingButton id={p.id} status={p.status} />
+                        <Link href={`/pagamentos/${p.id}/editar`} onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar">
+                            <Edit className="w-3.5 h-3.5" />
+                          </Button>
+                        </Link>
+                        <DeleteButton id={p.id} />
+                      </>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

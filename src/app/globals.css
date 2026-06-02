@@ -14,3 +14,15 @@ body {
   color: var(--foreground);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
+
+/* Fallback: make content visible if framer-motion hasn't animated after 3s */
+@keyframes forceVisible {
+  to { opacity: 1 !important; transform: none !important; }
+}
+
+[style*="opacity:0"],
+[style*="opacity: 0"],
+[style*="opacity:0;"],
+[style*="opacity: 0;"] {
+  animation: forceVisible 0s 1s forwards;
+}

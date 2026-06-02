@@ -51,6 +51,19 @@ export function ColaboradorForm({ colaborador }: ColaboradorFormProps) {
           <Label htmlFor="specialty">Especialidade</Label>
           <Input id="specialty" name="specialty" defaultValue={colaborador?.specialty ?? ""} placeholder="Ex: Pilates funcional, Fisioterapia ortopédica..." />
         </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="commissionRate">Taxa de Comissão (%)</Label>
+          <Input
+            id="commissionRate"
+            name="commissionRate"
+            type="number"
+            min={0}
+            max={100}
+            step={0.5}
+            defaultValue={colaborador?.commissionRate != null ? String(colaborador.commissionRate) : ""}
+            placeholder="Ex: 30"
+          />
+        </div>
       </div>
       <div className="flex gap-3 pt-2">
         <Button type="submit" disabled={isPending}>

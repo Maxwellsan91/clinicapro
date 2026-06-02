@@ -10,25 +10,42 @@ import {
   Calendar,
   Activity,
   CreditCard,
+  Percent,
+  ShieldCheck,
+  ClipboardList,
+  Bell,
+  DoorOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoutButton } from "@/features/auth/components/LogoutButton";
 
-const navItems = [
-  { href: "/dashboard",     label: "Dashboard",     icon: LayoutDashboard },
-  { href: "/clientes",      label: "Utentes",        icon: Users },
-  { href: "/colaboradores", label: "Colaboradores",  icon: UserCog },
-  { href: "/servicos",      label: "Serviços",        icon: Briefcase },
-  { href: "/agendamentos",  label: "Agendamentos",   icon: Calendar },
+const commonNavItems = [
+  { href: "/dashboard",     label: "Dashboard",      icon: LayoutDashboard },
+  { href: "/clientes",      label: "Utentes",         icon: Users },
+  { href: "/colaboradores", label: "Colaboradores",   icon: UserCog },
+  { href: "/servicos",      label: "Serviços",         icon: Briefcase },
+  { href: "/recursos",      label: "Recursos",         icon: DoorOpen },
+  { href: "/agendamentos",  label: "Agendamentos",    icon: Calendar },
+];
+
+const adminNavItems = [
   { href: "/pagamentos",    label: "Pagamentos",     icon: CreditCard },
+  { href: "/comissoes",     label: "Comissões",       icon: Percent },
+  { href: "/utilizadores",  label: "Utilizadores",   icon: ShieldCheck },
+  { href: "/notificacoes",  label: "Notificações",   icon: Bell },
+  { href: "/auditoria",     label: "Auditoria",      icon: ClipboardList },
 ];
 
 interface SidebarProps {
   userEmail?: string | null;
+  role?: "admin" | "user";
 }
 
-export function Sidebar({ userEmail }: SidebarProps) {
+export function Sidebar({ userEmail, role = "user" }: SidebarProps) {
   const pathname = usePathname();
+  const isAdmin = role === "admin";
+
+  const navItems = isAdmin ? [...commonNavItems, ...adminNavItems] : commonNavItems;
 
   const initials = userEmail
     ? userEmail.slice(0, 2).toUpperCase()
@@ -77,11 +94,16 @@ export function Sidebar({ userEmail }: SidebarProps) {
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">
-              {userEmail ? userEmail.split("@")[0] : "Admin"}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-medium text-white truncate">
+                {userEmail ? userEmail.split("@")[0] : "Admin"}
+              </p>
+              {isAdmin && (
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" aria-label="Administrador" />
+              )}
+            </div>
             <p className="text-xs text-slate-400 truncate">
-              {userEmail ?? "admin@clinica.pt"}
+              {isAdmin ? "Administrador" : "Utilizador"}
             </p>
           </div>
         </div>

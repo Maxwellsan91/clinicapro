@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 const FILTERS = [
@@ -11,27 +11,17 @@ const FILTERS = [
   { value: "no_show", label: "Não compareceu" },
 ];
 
-export function AgendamentoFilters() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const current = searchParams.get("status") ?? "";
+interface Props {
+  current?: string;
+}
 
-  function handleFilter(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) {
-      params.set("status", value);
-    } else {
-      params.delete("status");
-    }
-    router.push(`/agendamentos?${params.toString()}`);
-  }
-
+export function AgendamentoFilters({ current = "" }: Props) {
   return (
     <div className="flex flex-wrap gap-2">
       {FILTERS.map((f) => (
-        <button
+        <Link
           key={f.value}
-          onClick={() => handleFilter(f.value)}
+          href={f.value ? `/agendamentos?status=${f.value}` : "/agendamentos"}
           className={cn(
             "px-3 py-1.5 text-sm font-medium rounded-full border transition-colors",
             current === f.value
@@ -40,9 +30,8 @@ export function AgendamentoFilters() {
           )}
         >
           {f.label}
-        </button>
+        </Link>
       ))}
     </div>
   );
 }
-

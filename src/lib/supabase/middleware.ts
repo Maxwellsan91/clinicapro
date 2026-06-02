@@ -30,9 +30,11 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Rotas públicas (não precisam de auth)
-  const publicPaths = ["/login", "/auth/callback", "/auth/confirm"];
-  const isPublic = publicPaths.some((p) => pathname.startsWith(p));
+  // Rotas pblicas (no precisam de auth)
+  const publicPaths = ["/login", "/auth/callback", "/auth/confirm", "/api/", "/manifest.webmanifest", "/robots.txt", "/sitemap.xml"];
+  const isPublic =
+    pathname === "/" ||
+    publicPaths.some((p) => pathname.startsWith(p));
 
   // Utilizador não autenticado a tentar aceder a rota protegida
   if (!user && !isPublic) {
@@ -46,6 +48,28 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
+  }
+
+  // Rotas exclusivas para admins
+  const adminOnlyPaths = [
+    "/pagamentos",
+    "/colaboradores/novo",
+    "/comissoes",
+    "/utilizadores",
+    "/auditoria",
+    "/notificacoes",
+  ];
+  const isAdminOnlyPath =
+    adminOnlyPaths.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
+    /^\/colaboradores\/[^/]+\/editar/.test(pathname);
+
+  if (user && isAdminOnlyPath) {
+    const role = user.user_metadata?.role as string | undefined;
+    if (role !== "admin") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

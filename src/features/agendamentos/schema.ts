@@ -10,13 +10,14 @@ export const APPOINTMENT_STATUS_VALUES = [
 export type AppointmentStatus = (typeof APPOINTMENT_STATUS_VALUES)[number];
 
 export const createAgendamentoSchema = z.object({
-  clientId: z.string().min(1, "Cliente é obrigatório"),
+  clientId:       z.string().min(1, "Cliente é obrigatório"),
   collaboratorId: z.string().min(1, "Colaborador é obrigatório"),
-  serviceId: z.string().min(1, "Serviço é obrigatório"),
-  startDateTime: z.string().min(1, "Data/hora de início é obrigatória"),
-  endDateTime: z.string().min(1, "Data/hora de término é obrigatória"),
-  status: z.enum(APPOINTMENT_STATUS_VALUES).default("scheduled"),
-  notes: z.string().optional(),
+  serviceId:      z.string().min(1, "Serviço é obrigatório"),
+  startDateTime:  z.string().min(1, "Data/hora de início é obrigatória"),
+  endDateTime:    z.string().min(1, "Data/hora de término é obrigatória"),
+  status:         z.enum(APPOINTMENT_STATUS_VALUES).default("scheduled"),
+  notes:          z.string().optional(),
+  resourceIds:    z.array(z.string()).optional().default([]),
 });
 
 export const updateAgendamentoSchema = createAgendamentoSchema.partial();

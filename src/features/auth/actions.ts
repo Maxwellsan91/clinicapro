@@ -63,3 +63,14 @@ export async function getUser() {
   return user;
 }
 
+/** Returns "admin" | "user". Defaults to "user" if not set. */
+export async function getUserRole(): Promise<"admin" | "user"> {
+  const user = await getUser();
+  const role = user?.user_metadata?.role as string | undefined;
+  return role === "admin" ? "admin" : "user";
+}
+
+export async function isAdmin(): Promise<boolean> {
+  return (await getUserRole()) === "admin";
+}
+

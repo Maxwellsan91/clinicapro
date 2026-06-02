@@ -1,16 +1,38 @@
 import { prisma } from "@/lib/prisma";
 import type { CreateClienteInput, UpdateClienteInput } from "./schema";
 
-export async function findAllClientes(tenantId: string) {
+const ACTIVE = { isDeleted: false } as const;
+
+export async function findAllClientes(tenantId: string, withDeleted = false) {
   return prisma.client.findMany({
-    where: { tenantId },
+    where: { tenantId, ...(withDeleted ? {} : ACTIVE) },
     orderBy: { createdAt: "desc" },
   });
 }
 
 export async function findClienteById(id: string, tenantId: string) {
   return prisma.client.findFirst({
-    where: { id, tenantId },
+    where: { id, tenantId, ...ACTIVE },
+  });
+}
+
+export async function findClienteByIdWithDetails(id: string, tenantId: string) {
+  return prisma.client.findFirst({
+    where: { id, tenantId, ...ACTIVE },
+    include: {
+      appointments: {
+        where: { isDeleted: false },
+        orderBy: { startDateTime: "desc" },
+        include: {
+          service: { select: { name: true, price: true } },
+          collaborator: { select: { name: true } },
+        },
+      },
+      payments: {
+        where: { isDeleted: false },
+        orderBy: { createdAt: "desc" },
+      },
+    },
   });
 }
 
@@ -36,9 +58,20 @@ export async function updateCliente(id: string, tenantId: string, data: UpdateCl
   });
 }
 
+/** Soft delete */
 export async function deleteCliente(id: string, tenantId: string) {
-  // Ensure it belongs to the tenant
-  await prisma.client.findFirstOrThrow({ where: { id, tenantId } });
-  return prisma.client.delete({ where: { id } });
+  await prisma.client.findFirstOrThrow({ where: { id, tenantId, ...ACTIVE } });
+  return prisma.client.update({
+    where: { id },
+    data: { isDeleted: true, deletedAt: new Date() },
+  });
 }
 
+/** Restore soft-deleted record */
+export async function restoreCliente(id: string, tenantId: string) {
+  await prisma.client.findFirstOrThrow({ where: { id, tenantId, isDeleted: true } });
+  return prisma.client.update({
+    where: { id },
+    data: { isDeleted: false, deletedAt: null },
+  });
+}

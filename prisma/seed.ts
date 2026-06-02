@@ -34,6 +34,9 @@ const IDS = {
   // serviços
   svc1: "svc-seed-001", svc2: "svc-seed-002", svc3: "svc-seed-003",
   svc4: "svc-seed-004", svc5: "svc-seed-005",
+  // recursos
+  res1: "res-seed-001", res2: "res-seed-002", res3: "res-seed-003",
+  res4: "res-seed-004", res5: "res-seed-005", res6: "res-seed-006",
   // agendamentos
   apt1: "apt-seed-001", apt2: "apt-seed-002", apt3: "apt-seed-003",
   apt4: "apt-seed-004", apt5: "apt-seed-005", apt6: "apt-seed-006",
@@ -139,7 +142,54 @@ async function main() {
   ]);
   console.log("✅  5 serviços criados");
 
-  // ── 4. Clientes ────────────────────────────────────────────────────────────
+  // ── 4. Recursos ────────────────────────────────────────────────────────────
+  await Promise.all([
+    prisma.resource.upsert({
+      where: { id: IDS.res1 }, update: {},
+      create: {
+        id: IDS.res1, tenantId: TENANT_ID,
+        name: "Fisio 1", type: "room", capacity: 1, isActive: true,
+      },
+    }),
+    prisma.resource.upsert({
+      where: { id: IDS.res2 }, update: {},
+      create: {
+        id: IDS.res2, tenantId: TENANT_ID,
+        name: "Fisio 2", type: "room", capacity: 1, isActive: true,
+      },
+    }),
+    prisma.resource.upsert({
+      where: { id: IDS.res3 }, update: {},
+      create: {
+        id: IDS.res3, tenantId: TENANT_ID,
+        name: "Terapia Ocupacional", type: "room", capacity: 2, isActive: true,
+      },
+    }),
+    prisma.resource.upsert({
+      where: { id: IDS.res4 }, update: {},
+      create: {
+        id: IDS.res4, tenantId: TENANT_ID,
+        name: "Psicologia", type: "room", capacity: 1, isActive: true,
+      },
+    }),
+    prisma.resource.upsert({
+      where: { id: IDS.res5 }, update: {},
+      create: {
+        id: IDS.res5, tenantId: TENANT_ID,
+        name: "Ginásio", type: "gym", capacity: 10, isActive: true,
+      },
+    }),
+    prisma.resource.upsert({
+      where: { id: IDS.res6 }, update: {},
+      create: {
+        id: IDS.res6, tenantId: TENANT_ID,
+        name: "Terapia da Fala", type: "room", capacity: 1, isActive: true,
+      },
+    }),
+  ]);
+  console.log("✅  6 recursos criados (salas + ginásio)");
+
+  // ── 5. Clientes ────────────────────────────────────────────────────────────
   await Promise.all([
     prisma.client.upsert({
       where: { id: IDS.cli1 }, update: {},
@@ -197,7 +247,7 @@ async function main() {
   ]);
   console.log("✅  5 clientes criados");
 
-  // ── 5. Agendamentos ────────────────────────────────────────────────────────
+  // ── 6. Agendamentos ────────────────────────────────────────────────────────
   // Datas — passados
   const s1 = daysAgo(5, 9, 0);
   const s2 = daysAgo(3, 10, 30);
@@ -285,7 +335,7 @@ async function main() {
   ]);
   console.log("✅  8 agendamentos criados (5 passados + 3 futuros)");
 
-  // ── 6. Pagamentos ──────────────────────────────────────────────────────────
+  // ── 7. Pagamentos ──────────────────────────────────────────────────────────
   await Promise.all([
     // Pago — apt1
     prisma.payment.upsert({
@@ -373,13 +423,14 @@ async function main() {
   console.log("✅  7 pagamentos criados (3 pagos · 3 pendentes · 1 parcial)");
 
   // ── Resumo final ───────────────────────────────────────────────────────────
-  const [nTen, nCol, nSvc, nCli, nApt, nPay] = await Promise.all([
+  const [nTen, nCol, nSvc, nCli, nApt, nPay, nRes] = await Promise.all([
     prisma.tenant.count(),
     prisma.collaborator.count({ where: { tenantId: TENANT_ID } }),
     prisma.service.count({ where: { tenantId: TENANT_ID } }),
     prisma.client.count({ where: { tenantId: TENANT_ID } }),
     prisma.appointment.count({ where: { tenantId: TENANT_ID } }),
     prisma.payment.count({ where: { tenantId: TENANT_ID } }),
+    prisma.resource.count({ where: { tenantId: TENANT_ID } }),
   ]);
 
   console.log(`
@@ -389,6 +440,7 @@ async function main() {
   Tenants       : ${nTen}
   Colaboradores : ${nCol}
   Serviços      : ${nSvc}
+  Recursos      : ${nRes}
   Clientes      : ${nCli}
   Agendamentos  : ${nApt}
   Pagamentos    : ${nPay}

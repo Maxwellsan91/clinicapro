@@ -11,8 +11,9 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import { deleteAgendamentoAction, cancelAgendamentoAction } from "../actions";
+import { deleteAgendamentoAction, cancelAgendamentoAction, restoreAgendamentoAction } from "../actions";
 import { StatusBadge } from "./StatusBadge";
+import { RestoreButton } from "@/components/ui/RestoreButton";
 import { Edit, Trash2, XCircle, Clock } from "lucide-react";
 import type { Appointment, Client, Collaborator, Service } from "@prisma/client";
 
@@ -84,14 +85,15 @@ function DeleteButton({ id }: { id: string }) {
 
 interface AgendamentoListProps {
   agendamentos: AgendamentoWithRelations[];
+  showDeleted?: boolean;
 }
 
-export function AgendamentoList({ agendamentos }: AgendamentoListProps) {
+export function AgendamentoList({ agendamentos, showDeleted = false }: AgendamentoListProps) {
   if (agendamentos.length === 0) {
     return (
       <div className="text-center py-12 text-gray-500">
-        <p className="text-lg font-medium">Nenhum agendamento encontrado</p>
-        <p className="text-sm mt-1">Comece criando um novo agendamento</p>
+        <p className="text-lg font-medium">{showDeleted ? "Nenhum agendamento eliminado" : "Nenhum agendamento encontrado"}</p>
+        <p className="text-sm mt-1">{showDeleted ? "" : "Comece criando um novo agendamento"}</p>
       </div>
     );
   }
@@ -111,36 +113,30 @@ export function AgendamentoList({ agendamentos }: AgendamentoListProps) {
       </TableHeader>
       <TableBody>
         {agendamentos.map((a) => (
-          <TableRow key={a.id}>
-            <TableCell className="font-medium whitespace-nowrap">
-              {formatDateTime(a.startDateTime)}
-            </TableCell>
+          <TableRow key={a.id} className={a.isDeleted ? "opacity-60 bg-red-50/30" : ""}>
+            <TableCell className="font-medium whitespace-nowrap">{formatDateTime(a.startDateTime)}</TableCell>
             <TableCell className="text-gray-500 whitespace-nowrap">
-              <span className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {formatTime(a.endDateTime)}
-              </span>
+              <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatTime(a.endDateTime)}</span>
             </TableCell>
             <TableCell>{a.client.name}</TableCell>
             <TableCell className="text-gray-500">{a.collaborator.name}</TableCell>
             <TableCell className="text-gray-500">
-              {a.service.name}
-              <span className="text-xs text-gray-400 ml-1">
-                ({a.service.duration} min)
-              </span>
+              {a.service.name}<span className="text-xs text-gray-400 ml-1">({a.service.duration} min)</span>
             </TableCell>
-            <TableCell>
-              <StatusBadge status={a.status} />
-            </TableCell>
+            <TableCell><StatusBadge status={a.status} /></TableCell>
             <TableCell className="text-right">
               <div className="flex items-center justify-end gap-1">
-                <Link href={`/agendamentos/${a.id}/editar`}>
-                  <Button variant="ghost" size="icon" title="Editar">
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                </Link>
-                <CancelButton id={a.id} status={a.status} />
-                <DeleteButton id={a.id} />
+                {a.isDeleted ? (
+                  <RestoreButton onRestore={() => restoreAgendamentoAction(a.id)} />
+                ) : (
+                  <>
+                    <Link href={`/agendamentos/${a.id}/editar`}>
+                      <Button variant="ghost" size="icon" title="Editar"><Edit className="w-4 h-4" /></Button>
+                    </Link>
+                    <CancelButton id={a.id} status={a.status} />
+                    <DeleteButton id={a.id} />
+                  </>
+                )}
               </div>
             </TableCell>
           </TableRow>
