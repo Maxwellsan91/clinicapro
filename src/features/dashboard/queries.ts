@@ -200,10 +200,17 @@ export async function getDashboardData(tenantId: string) {
     select: { id: true, name: true },
   });
   const serviceNameMap = Object.fromEntries(services.map((s) => [s.id, s.name]));
-  const topServicos = servicosUsados.map((s) => ({
-    nome: serviceNameMap[s.serviceId] ?? s.serviceId,
-    total: s._count.serviceId,
-  }));
+
+  // Consolidar entradas com o mesmo nome (serviços duplicados na BD com nomes iguais)
+  const servicosMap = new Map<string, number>();
+  for (const s of servicosUsados) {
+    const nome = serviceNameMap[s.serviceId] ?? s.serviceId;
+    servicosMap.set(nome, (servicosMap.get(nome) ?? 0) + s._count.serviceId);
+  }
+  const topServicos = Array.from(servicosMap.entries())
+    .map(([nome, total]) => ({ nome, total }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5);
 
   // Resolver nomes dos colaboradores
   const collabIds = colaboradoresAtendimentos.map((c) => c.collaboratorId);

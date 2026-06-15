@@ -82,10 +82,14 @@ export function TimePicker({
     return () => document.removeEventListener("mousedown", onDown);
   }, [isOpen]);
 
-  // Fechar ao fazer scroll
+  // Fechar ao fazer scroll fora do menu
   useEffect(() => {
     if (!isOpen) return;
-    function onScroll() { setIsOpen(false); }
+    function onScroll(e: Event) {
+      // Se o scroll acontecer dentro do próprio menu, não fechar
+      if (menuRef.current?.contains(e.target as Node)) return;
+      setIsOpen(false);
+    }
     window.addEventListener("scroll", onScroll, true);
     return () => window.removeEventListener("scroll", onScroll, true);
   }, [isOpen]);

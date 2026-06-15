@@ -11,6 +11,7 @@ import { findAllAgendamentos } from "@/features/agendamentos/repository";
 import { findAllClientes } from "@/features/clientes/repository";
 import { findAllColaboradores } from "@/features/colaboradores/repository";
 import { findAllServicos } from "@/features/servicos/repository";
+import { findActiveRecursos } from "@/features/recursos/repository";
 import { TENANT_ID } from "@/constants";
 import { serializeDecimal } from "@/lib/utils";
 import { Plus, Trash2 } from "lucide-react";
@@ -53,10 +54,11 @@ export default async function AgendamentosPage({ searchParams }: PageProps) {
   }
 
   // Vista normal — calendário
-  const [clientes, colaboradores, servicosRaw] = await Promise.all([
+  const [clientes, colaboradores, servicosRaw, recursos] = await Promise.all([
     findAllClientes(TENANT_ID),
     findAllColaboradores(TENANT_ID),
     findAllServicos(TENANT_ID),
+    findActiveRecursos(TENANT_ID),
   ]);
   const servicos = serializeDecimal(servicosRaw);
 
@@ -88,6 +90,7 @@ export default async function AgendamentosPage({ searchParams }: PageProps) {
             clientes={clientes.map((c) => ({ id: c.id, name: c.name }))}
             colaboradores={colaboradores.map((c) => ({ id: c.id, name: c.name, role: c.role, email: c.email }))}
             servicos={servicos.map((s) => ({ id: s.id, name: s.name, duration: s.duration }))}
+            recursos={recursos.map((r) => ({ id: r.id, name: r.name, type: r.type }))}
           />
         </Suspense>
       </div>

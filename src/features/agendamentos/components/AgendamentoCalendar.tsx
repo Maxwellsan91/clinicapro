@@ -29,11 +29,13 @@ import { useRouter } from "next/navigation";
 interface Client  { id: string; name: string }
 interface Collab  { id: string; name: string; role: string; email: string | null }
 interface Service { id: string; name: string; duration: number }
+interface Resource { id: string; name: string; type: string }
 
 interface Props {
   clientes: Client[];
   colaboradores: Collab[];
   servicos: Service[];
+  recursos: Resource[];
 }
 
 // Mapa de cores por colaborador (calculado uma vez)
@@ -53,7 +55,7 @@ const STATUS_COLORS: Record<string, string> = {
   no_show:    "#ef4444",
 };
 
-export function AgendamentoCalendar({ clientes, colaboradores, servicos }: Props) {
+export function AgendamentoCalendar({ clientes, colaboradores, servicos, recursos }: Props) {
   const calRef = useRef<FullCalendar>(null);
   const router = useRouter();
 
@@ -310,6 +312,7 @@ export function AgendamentoCalendar({ clientes, colaboradores, servicos }: Props
           clientes={clientes}
           colaboradores={colaboradores}
           servicos={servicos}
+          recursos={recursos}
           onClose={() => setQuickCreate(null)}
           onCreated={() => {
             setQuickCreate(null);

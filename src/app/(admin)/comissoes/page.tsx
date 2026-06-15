@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,7 @@ import { getColaboradoresComissoes } from "@/features/colaboradores/repository";
 import { isAdmin } from "@/features/auth/actions";
 import { TENANT_ID } from "@/constants";
 import { formatCurrency } from "@/lib/utils";
-import { Percent, Users, TrendingUp, DollarSign } from "lucide-react";
+import { Percent, Users, TrendingUp, DollarSign, ChevronRight } from "lucide-react";
 import { CommissionRateEditor } from "@/features/colaboradores/components/CommissionRateEditor";
 
 export default async function ComissoesPage() {
@@ -89,23 +90,31 @@ export default async function ComissoesPage() {
                     </tr>
                   ) : (
                     colaboradores.map((col) => (
-                      <tr key={col.id} className="hover:bg-gray-50 transition-colors">
+                      <tr key={col.id} className="hover:bg-blue-50/40 transition-colors cursor-pointer group">
                         <td className="px-4 py-3">
-                          <div>
-                            <p className="font-medium text-gray-900">{col.name}</p>
-                            {col.email && (
-                              <p className="text-xs text-gray-400">{col.email}</p>
-                            )}
-                          </div>
+                          <Link href={`/comissoes/${col.id}`} className="block">
+                            <div>
+                              <p className="font-medium text-gray-900 group-hover:text-blue-700 transition-colors">{col.name}</p>
+                              {col.email && (
+                                <p className="text-xs text-gray-400">{col.email}</p>
+                              )}
+                            </div>
+                          </Link>
                         </td>
                         <td className="px-4 py-3">
-                          <Badge variant="secondary" className="text-xs">{col.role}</Badge>
+                          <Link href={`/comissoes/${col.id}`} className="block">
+                            <Badge variant="secondary" className="text-xs">{col.role}</Badge>
+                          </Link>
                         </td>
                         <td className="px-4 py-3 text-right text-gray-600">
-                          {col.appointmentsCompleted}
+                          <Link href={`/comissoes/${col.id}`} className="block">
+                            {col.appointmentsCompleted}
+                          </Link>
                         </td>
                         <td className="px-4 py-3 text-right font-medium text-gray-900">
-                          {formatCurrency(col.totalPagamentos)}
+                          <Link href={`/comissoes/${col.id}`} className="block">
+                            {formatCurrency(col.totalPagamentos)}
+                          </Link>
                         </td>
                         <td className="px-4 py-3 text-right">
                           <CommissionRateEditor
@@ -114,7 +123,10 @@ export default async function ComissoesPage() {
                           />
                         </td>
                         <td className="px-4 py-3 text-right font-bold text-purple-700">
-                          {formatCurrency(col.commissionValue)}
+                          <Link href={`/comissoes/${col.id}`} className="flex items-center justify-end gap-1">
+                            {formatCurrency(col.commissionValue)}
+                            <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-400 transition-colors shrink-0" />
+                          </Link>
                         </td>
                       </tr>
                     ))
