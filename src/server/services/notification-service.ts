@@ -1,5 +1,5 @@
 /**
- * Notification Service — ClinicaPro
+ * Notification Service — GlobalFisio
  *
  * Responsável por:
  * - Criar notificações na BD
@@ -48,8 +48,8 @@ function getResend(): Resend {
   return new Resend(apiKey);
 }
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "notificacoes@clinicapro.pt";
-const CLINIC_NAME = process.env.CLINIC_NAME ?? "ClinicaPro";
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "notificacoes@globalfisio.pt";
+const CLINIC_NAME = process.env.CLINIC_NAME ?? "GlobalFisio";
 
 // ── Criar notificação na BD ───────────────────────────────────────────────
 

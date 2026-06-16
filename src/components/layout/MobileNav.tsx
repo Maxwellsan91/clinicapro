@@ -66,7 +66,7 @@ export function MobileNav({ userEmail, role = "user" }: MobileNavProps) {
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500">
             <Activity className="w-4 h-4 text-white" />
           </div>
-          <span className="font-bold text-sm tracking-tight">ClinicaPro</span>
+          <span className="font-bold text-sm tracking-tight">Clinica<span className="text-blue-400">Pro</span></span>
         </div>
 
         {/* Avatar + hamburguer */}
@@ -112,7 +112,7 @@ export function MobileNav({ userEmail, role = "user" }: MobileNavProps) {
               <Activity className="w-4 h-4 text-white" />
             </div>
             <div>
-              <p className="font-bold text-sm text-white">ClinicaPro</p>
+              <p className="font-bold text-sm text-white">Clinica<span className="text-blue-400">Pro</span></p>
               <p className="text-xs text-slate-400">Gestão de Clínica</p>
             </div>
           </div>

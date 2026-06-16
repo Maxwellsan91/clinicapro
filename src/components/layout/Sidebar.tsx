@@ -59,7 +59,7 @@ export function Sidebar({ userEmail, role = "user" }: SidebarProps) {
           <Activity className="w-5 h-5 text-white" />
         </div>
         <div>
-          <p className="font-bold text-white text-sm leading-tight">ClinicaPro</p>
+          <p className="font-bold text-white text-sm leading-tight">Clinica<span className="text-blue-400">Pro</span></p>
           <p className="text-slate-400 text-xs">Gestão de Clínica</p>
         </div>
       </div>

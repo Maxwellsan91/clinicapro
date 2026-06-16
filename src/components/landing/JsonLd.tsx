@@ -12,7 +12,7 @@ export function LocalBusinessSchema() {
     "@type": ["MedicalClinic", "LocalBusiness"],
     "@id": `${SITE_URL}/#organization`,
     name: SITE_NAME,
-    alternateName: "Clinica Pro Fisioterapia Lisboa",
+    alternateName: "GlobalFisio Fisioterapia Lisboa",
     description: SITE_DESCRIPTION,
     url: SITE_URL,
     logo: {
@@ -153,7 +153,7 @@ export function TeamSchema() {
   const schema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: "Equipa ClinicaPro",
+    name: "Equipa GlobalFisio",
     itemListElement: team.map((member, i) => ({
       "@type": "ListItem",
       position: i + 1,

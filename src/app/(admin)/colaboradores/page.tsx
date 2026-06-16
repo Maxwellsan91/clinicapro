@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ColaboradorList } from "@/features/colaboradores/components/ColaboradorList";
 import { findAllColaboradores } from "@/features/colaboradores/repository";
 import { TENANT_ID } from "@/constants";
+import { serializeCollaborators } from "@/lib/serializers";
 import { Plus, Trash2 } from "lucide-react";
 
 interface Props {
@@ -17,8 +18,9 @@ export default async function ColaboradoresPage({ searchParams }: Props) {
   const sp = await searchParams;
   const showDeleted = sp.deleted === "1";
   const all = await findAllColaboradores(TENANT_ID, showDeleted);
-  const active = all.filter((c) => !c.isDeleted);
-  const deleted = all.filter((c) => c.isDeleted);
+  const serialized = serializeCollaborators(all);
+  const active = serialized.filter((c) => !c.isDeleted);
+  const deleted = serialized.filter((c) => c.isDeleted);
   const list = showDeleted ? deleted : active;
 
   return (

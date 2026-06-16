@@ -1,11 +1,11 @@
 /**
- * Constantes SEO centralizadas para a ClinicaPro.
+ * Constantes SEO centralizadas para a GlobalFisio.
  * Alterar aqui reflecte em todo o site automaticamente.
  */
 
-export const SITE_URL = "https://www.clinicapro.pt";
-export const SITE_NAME = "ClinicaPro";
-export const SITE_TITLE = "ClinicaPro — Fisioterapia, Pilates e Massagem em Lisboa";
+export const SITE_URL = "https://www.globalfisio.pt";
+export const SITE_NAME = "GlobalFisio";
+export const SITE_TITLE = "GlobalFisio — Fisioterapia, Pilates e Massagem em Lisboa";
 export const SITE_DESCRIPTION =
   "Centro clínico premium em Lisboa. Fisioterapia, pilates clínico e massagem terapêutica com profissionais certificados e tecnologia avançada. Marque já a sua consulta.";
 
@@ -20,7 +20,7 @@ export const CLINIC_ADDRESS = {
 export const CLINIC_CONTACT = {
   phone: "+351210000000",
   phoneFormatted: "+351 210 000 000",
-  email: "info@clinicapro.pt",
+  email: "info@globalfisio.pt",
   whatsapp: "+351210000000",
 };
 
@@ -40,9 +40,9 @@ export const CLINIC_GEO = {
 };
 
 export const SOCIAL_PROFILES = [
-  "https://www.facebook.com/clinicapro",
-  "https://www.instagram.com/clinicapro",
-  "https://www.linkedin.com/company/clinicapro",
+  "https://www.facebook.com/globalfisio",
+  "https://www.instagram.com/globalfisio",
+  "https://www.linkedin.com/company/globalfisio",
 ];
 
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.png`;
@@ -67,6 +67,6 @@ export const KEYWORDS = {
     "tratamento dores costas lisboa",
     "clínica saúde bem-estar lisboa",
   ],
-  brand: ["clinicapro", "clinica pro fisioterapia"],
+  brand: ["globalfisio", "global fisio fisioterapia"],
 };
 

@@ -38,7 +38,7 @@ export function Contact() {
           <AnimateIn className="space-y-6">
             {[
               { icon: Phone, label: "Telefone", value: "+351 210 000 000", href: "tel:+351210000000" },
-              { icon: Mail,  label: "Email",    value: "info@clinicapro.pt", href: "mailto:info@clinicapro.pt" },
+              { icon: Mail,  label: "Email",    value: "info@globalfisio.pt", href: "mailto:info@globalfisio.pt" },
               { icon: MapPin, label: "Morada",  value: "Av. da Liberdade, 150\n1250-096 Lisboa", href: "#" },
               { icon: Clock,  label: "Horário", value: "Seg–Sex: 8h–20h\nSáb: 9h–16h", href: "#" },
             ].map((item) => {

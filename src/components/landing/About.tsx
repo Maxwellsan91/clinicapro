@@ -68,7 +68,7 @@ export function About() {
               <span className="text-blue-600">humano</span>
             </h2>
             <p className="text-slate-500 leading-relaxed mb-6">
-              A ClinicaPro nasceu com a visão de criar um espaço onde ciência e humanidade se encontram. Acreditamos que cada pessoa merece um tratamento digno, eficaz e adaptado à sua realidade.
+              A GlobalFisio nasceu com a visão de criar um espaço onde ciência e humanidade se encontram. Acreditamos que cada pessoa merece um tratamento digno, eficaz e adaptado à sua realidade.
             </p>
             <p className="text-slate-500 leading-relaxed mb-8">
               Com uma equipa de profissionais altamente qualificados e equipamentos de última geração, somos a escolha de referência para quem procura cuidados de saúde premium em Lisboa.

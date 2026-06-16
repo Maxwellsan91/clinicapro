@@ -52,8 +52,8 @@ const nextConfig: NextConfig = {
       // Redirecionar www para apex (SEO canonical)
       {
         source: "/:path*",
-        has: [{ type: "host", value: "www.clinicapro.pt" }],
-        destination: "https://clinicapro.pt/:path*",
+        has: [{ type: "host", value: "www.globalfisio.pt" }],
+        destination: "https://globalfisio.pt/:path*",
         permanent: true,
       },
     ];

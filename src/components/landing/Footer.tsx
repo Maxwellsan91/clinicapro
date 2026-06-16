@@ -46,7 +46,7 @@ export function Footer() {
               <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center">
                 <Heart className="w-4 h-4 text-white" fill="white" />
               </div>
-              <span className="font-bold text-xl text-white tracking-tight">Clinica<span className="text-blue-400">Pro</span></span>
+              <span className="font-bold text-xl text-white tracking-tight">Global<span className="text-blue-400">Fisio</span></span>
             </Link>
             <p className="text-sm text-slate-400 leading-relaxed max-w-xs">
               Centro de fisioterapia, pilates clínico e massagem terapêutica em Lisboa. Cuidamos do seu corpo com tecnologia, experiência e atenção personalizada.
@@ -55,7 +55,7 @@ export function Footer() {
             <div className="space-y-2.5">
               {[
                 { icon: Phone, text: "+351 210 000 000" },
-                { icon: Mail,  text: "info@clinicapro.pt" },
+                { icon: Mail,  text: "info@globalfisio.pt" },
                 { icon: MapPin,text: "Av. da Liberdade, 150 · Lisboa" },
               ].map(({ icon: Icon, text }) => (
                 <div key={text} className="flex items-center gap-2.5 text-sm text-slate-400">
@@ -103,7 +103,7 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="mt-12 pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-slate-500">
-            © {new Date().getFullYear()} ClinicaPro. Todos os direitos reservados.
+            © {new Date().getFullYear()} GlobalFisio. Todos os direitos reservados.
           </p>
           <div className="flex items-center gap-1.5 text-xs text-slate-500">
             <span>Feito com</span>

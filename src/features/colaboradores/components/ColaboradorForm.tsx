@@ -8,10 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { createColaboradorAction, updateColaboradorAction } from "../actions";
 import { COLLABORATOR_ROLES } from "@/constants";
-import type { Collaborator } from "@prisma/client";
+import type { SerializedCollaborator } from "@/lib/serializers";
 
 interface ColaboradorFormProps {
-  colaborador?: Collaborator;
+  colaborador?: SerializedCollaborator;
 }
 
 export function ColaboradorForm({ colaborador }: ColaboradorFormProps) {
@@ -76,4 +76,3 @@ export function ColaboradorForm({ colaborador }: ColaboradorFormProps) {
     </form>
   );
 }
-

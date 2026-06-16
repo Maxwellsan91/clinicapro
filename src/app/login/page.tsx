@@ -3,7 +3,7 @@ import { Activity, CheckCircle } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Entrar — ClinicaPro",
+  title: "Entrar — GlobalFisio",
 };
 
 const features = [
@@ -31,7 +31,7 @@ export default function LoginPage() {
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm border border-white/20">
             <Activity className="w-5 h-5 text-white" />
           </div>
-          <span className="text-white font-bold text-lg tracking-tight">ClinicaPro</span>
+          <span className="text-white font-bold text-lg tracking-tight">GlobalFisio</span>
         </div>
 
         {/* Conteúdo central */}
@@ -78,7 +78,7 @@ export default function LoginPage() {
           <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-600">
             <Activity className="w-5 h-5 text-white" />
           </div>
-          <span className="text-gray-900 font-bold text-lg">ClinicaPro</span>
+          <span className="text-gray-900 font-bold text-lg">GlobalFisio</span>
         </div>
 
         <div className="w-full max-w-[380px]">
@@ -100,7 +100,7 @@ export default function LoginPage() {
 
           {/* Footer */}
           <p className="text-center text-xs text-gray-400 mt-8">
-            © {new Date().getFullYear()} ClinicaPro · Todos os direitos reservados
+            © {new Date().getFullYear()} GlobalFisio · Todos os direitos reservados
           </p>
         </div>
       </div>

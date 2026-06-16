@@ -1,7 +1,7 @@
-# 📋 Documentação do Sistema — ClinicaPro
+# 📋 Documentação do Sistema — GlobalFisio
 
-> **Data de geração:** 2 de Junho de 2026  
-> **Versão:** 0.1.0  
+> **Data de geração:** 16 de Junho de 2026  
+> **Versão:** 0.2.0  
 > **Ambiente:** Next.js 16 · React 19 · TypeScript · Prisma 7 · Supabase · PostgreSQL
 
 ---
@@ -21,9 +21,10 @@
    - [6.5 Serviços](#65-serviços)
    - [6.6 Pagamentos](#66-pagamentos)
    - [6.7 Comissões](#67-comissões)
-   - [6.8 Notificações](#68-notificações)
-   - [6.9 Auditoria](#69-auditoria)
-   - [6.10 Utilizadores](#610-utilizadores)
+   - [6.8 Recursos](#68-recursos)
+   - [6.9 Notificações](#69-notificações)
+   - [6.10 Auditoria](#610-auditoria)
+   - [6.11 Utilizadores](#611-utilizadores)
 7. [Landing Page](#7-landing-page)
 8. [Infra-estrutura e Serviços](#8-infra-estrutura-e-serviços)
 9. [Estrutura de Ficheiros](#9-estrutura-de-ficheiros)
@@ -36,12 +37,13 @@
 
 ## 1. Visão Geral do Projecto
 
-O **ClinicaPro** é um sistema de gestão para clínicas de saúde e bem-estar (fisioterapia, pilates, massagem, osteopatia, etc.). Permite gerir o dia-a-dia de uma clínica a partir de uma única plataforma web:
+O **GlobalFisio** é um sistema de gestão para clínicas de saúde e bem-estar (fisioterapia, pilates, massagem, osteopatia, etc.). Permite gerir o dia-a-dia de uma clínica a partir de uma única plataforma web:
 
 - Agenda com calendário interactivo
 - Gestão de clientes, colaboradores e serviços
 - Controlo de pagamentos e facturas
-- Cálculo e monitorização de comissões
+- Cálculo e monitorização de comissões com registo de pagamentos aos colaboradores
+- Gestão de recursos (salas, gabinetes e equipamentos) com controlo de conflitos
 - Sistema de notificações por e-mail (lembretes, cancelamentos, pagamentos)
 - Log de auditoria de todas as operações
 - Gestão de utilizadores do sistema com controlo de acessos (admin / user)
@@ -116,7 +118,9 @@ A aplicação suporta **multi-tenant** — cada clínica tem o seu `tenantId` is
 
 ### Middleware
 
-O ficheiro `src/middleware.ts` intercepta todas as rotas (excepto assets estáticos) e chama `updateSession` do Supabase para renovar/validar a sessão em SSR. Protege as rotas de administração redirecionando utilizadores não autenticados para `/login`.
+O ficheiro `src/proxy.ts` exporta a função `proxy()` e o `config` de matcher, que o Next.js 16 utiliza como ponto de entrada do middleware. Internamente chama `updateSession` do Supabase para renovar/validar a sessão em SSR. Protege as rotas de administração redirecionando utilizadores não autenticados para `/login`.
+
+> **Nota:** Em Next.js 16 o ficheiro de middleware passou a chamar-se `proxy.ts` em vez de `middleware.ts`.
 
 ---
 
@@ -130,11 +134,15 @@ Tenant (1) ──── (N) Collaborator
 Tenant (1) ──── (N) Service
 Tenant (1) ──── (N) Appointment
 Tenant (1) ──── (N) Payment
+Tenant (1) ──── (N) Resource
 
 Appointment (N) ──── (1) Client
 Appointment (N) ──── (1) Collaborator
 Appointment (N) ──── (1) Service
 Appointment (1) ──── (N) Payment
+Appointment (N) ──── (M) Resource  [via AppointmentResource]
+
+Collaborator (1) ──── (N) CommissionPayment
 
 Notification   (independente, indexada por tenantId e appointmentId)
 AuditLog       (independente, indexada por tenantId, userId, entity)
@@ -222,6 +230,37 @@ AuditLog       (independente, indexada por tenantId, userId, entity)
 | invoiceNumber | String? | Número da factura |
 | isDeleted / deletedAt | Boolean / DateTime? | Soft delete |
 
+#### `CommissionPayment`
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| id | String (cuid) | PK |
+| tenantId | String | Tenant |
+| collaboratorId | String | FK → Collaborator |
+| amount | Decimal(10,2) | Valor pago ao colaborador |
+| type | String | `payment` (pagamento normal) \| `advance` (adiantamento) |
+| notes | String? | Observações |
+| paidAt | DateTime | Data do pagamento |
+
+#### `Resource`
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| id | String (cuid) | PK |
+| tenantId | String | FK → Tenant |
+| name | String | Nome do recurso |
+| type | String | `room` \| `equipment` \| `gym` |
+| capacity | Int | Capacidade (padrão: 1) |
+| isActive | Boolean | Activo / inactivo |
+| isDeleted / deletedAt | Boolean / DateTime? | Soft delete |
+
+#### `AppointmentResource`
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| id | String (cuid) | PK |
+| appointmentId | String | FK → Appointment |
+| resourceId | String | FK → Resource |
+
+> Constraint única em `(appointmentId, resourceId)` — um recurso não pode ser associado duas vezes ao mesmo agendamento.
+
 #### `Notification`
 | Campo | Tipo | Descrição |
 |-------|------|-----------|
@@ -276,6 +315,14 @@ isAdmin()         // Retorna boolean
 loginAction()     // Server Action de login
 logoutAction()    // Server Action de logout
 ```
+
+### Componentes de Auth (`src/features/auth/components/`)
+| Ficheiro | Descrição |
+|----------|-----------|
+| `LoginForm.tsx` | Formulário de login com e-mail e palavra-passe |
+| `LogoutButton.tsx` | Botão de logout (Server Action) |
+| `InviteUserForm.tsx` | Formulário de convite de novo utilizador |
+| `UserList.tsx` | Tabela de listagem de utilizadores com acções de role/eliminar |
 
 ### Gestão de Utilizadores (`src/features/auth/userActions.ts`)
 ```typescript
@@ -334,11 +381,12 @@ deleteUser()             // Elimina utilizador (não pode auto-eliminar)
 | Listar | Calendário interactivo (FullCalendar) com vistas mês/semana/dia/lista |
 | Criar | Formulário em `/agendamentos/novo` ou modal de criação rápida no calendário |
 | Editar | Formulário em `/agendamentos/[id]/editar` |
-| Ver detalhe | Página `/agendamentos/[id]` com todos os dados |
+| Ver detalhe | Modal `EventModal` directamente no calendário (não há página de detalhe separada) |
 | Cancelar | Soft cancel com envio automático de e-mail ao cliente |
 | Eliminar | Soft delete (flag `isDeleted`) |
 | Restaurar | Restauro a partir da vista "Eliminados" |
 | Filtrar | Por status, colaborador, serviço, período |
+| **Recursos** | **Associar um ou mais recursos ao agendamento com validação de conflitos** |
 
 #### Status possíveis
 - `scheduled` — Agendado
@@ -361,14 +409,22 @@ deleteUser()             // Elimina utilizador (não pode auto-eliminar)
 - Ao **criar** → agenda notificação de lembrete 24h antes
 - Ao **cancelar** → envia e-mail de cancelamento imediatamente
 
+#### Validação de conflitos
+Ao criar ou editar um agendamento, o sistema valida automaticamente dois tipos de conflitos:
+1. **Conflito de colaborador** — verifica se o colaborador já tem outro agendamento activo no mesmo intervalo
+2. **Conflito de recursos** — verifica se algum dos recursos seleccionados já está reservado no mesmo intervalo (exclui agendamentos cancelados e `no_show`)
+
 #### Server Actions (`src/features/agendamentos/actions.ts`)
 ```typescript
-createAgendamentoAction(formData)     // Criar + audit log + notificação
-updateAgendamentoAction(id, formData) // Actualizar + audit log
+createAgendamentoAction(formData)     // Criar + audit log + notificação + recursos
+updateAgendamentoAction(id, formData) // Actualizar + audit log + recursos
 cancelAgendamentoAction(id)           // Cancelar + e-mail ao cliente + audit log
 deleteAgendamentoAction(id)           // Soft delete + audit log
 restoreAgendamentoAction(id)          // Restaurar + audit log
 ```
+
+#### Constantes de calendário (`src/features/agendamentos/calendarConstants.ts`)
+Configurações de cores, mapeamento de status para estilos de eventos do FullCalendar e outras constantes de apresentação do calendário.
 
 ---
 
@@ -432,6 +488,9 @@ Fisioterapeuta · Instrutor de Pilates · Massoterapeuta · Recepcionista · Adm
 | `ColaboradorForm.tsx` | Formulário de criação/edição |
 | `ColaboradorList.tsx` | Tabela de listagem |
 | `CommissionRateEditor.tsx` | Editor inline da taxa de comissão (%) |
+| `PeriodFilter.tsx` | Filtro de período para a página de detalhe de comissões |
+| `RegisterCommissionPaymentModal.tsx` | Modal para registar pagamento ou adiantamento ao colaborador |
+| `DeleteCommissionPaymentButton.tsx` | Botão de eliminar pagamento de comissão com confirmação |
 
 #### Server Actions (`src/features/colaboradores/actions.ts`)
 ```typescript
@@ -440,6 +499,12 @@ updateColaboradorAction(id, formData)     // Admin only
 deleteColaboradorAction(id)               // Admin only
 restoreColaboradorAction(id)              // Admin only
 updateCommissionRateAction(id, rate)      // Admin only — actualiza % de comissão
+```
+
+#### Server Actions — Pagamentos de Comissões (`src/features/colaboradores/commissionPaymentActions.ts`)
+```typescript
+createCommissionPaymentAction(formData)         // Admin only — regista pagamento/adiantamento
+deleteCommissionPaymentAction(id, colaboradorId) // Admin only — elimina pagamento registado
 ```
 
 ---
@@ -453,6 +518,7 @@ updateCommissionRateAction(id, rate)      // Admin only — actualiza % de comis
 |----------|-----------|
 | Listar | Tabela com nome, categoria, duração, preço e estado |
 | Criar | Formulário em `/servicos/novo` |
+| Ver detalhe | Página `/servicos/[id]` com todos os dados do serviço |
 | Editar | Formulário em `/servicos/[id]/editar` |
 | Activar/Desactivar | Toggle de estado sem eliminar |
 | Eliminar | Soft delete |
@@ -530,18 +596,89 @@ restorePagamentoAction(id)                // Admin only
 
 ### 6.7 Comissões
 
-**Rota:** `/comissoes`
+**Rota:** `/comissoes` · `/comissoes/[id]`
 
-#### Funcionalidades
-- Visão global das comissões de todos os colaboradores
-- Filtro por período (mês/ano)
-- Cálculo automático baseado nos pagamentos `paid` e na `commissionRate` de cada colaborador
-- Edição inline da taxa de comissão (% por colaborador)
-- Exportação / resumo por colaborador
+#### Funcionalidades — Vista Global (`/comissoes`)
+- Tabela com todos os colaboradores activos, mostrando:
+  - Número de serviços concluídos
+  - Total faturado (pagamentos `paid`)
+  - Taxa de comissão (com edição inline)
+  - Valor de comissão a pagar
+- KPIs no topo: total de colaboradores, total faturado e total a pagar
+- Navegação para a página de detalhe de cada colaborador
+
+#### Funcionalidades — Detalhe por Colaborador (`/comissoes/[id]`)
+| Funcionalidade | Descrição |
+|---------------|-----------|
+| Filtro de período | Este mês, mês anterior, últimos 3/6 meses, este ano, período personalizado |
+| KPIs | Atendimentos, Total Faturado, Comissão Gerada, Já Pago ao Colaborador, Saldo a Pagar |
+| Tabela de atendimentos | Lista dos atendimentos concluídos no período com faturado, status de pagamento e comissão por linha |
+| Registar pagamento | Modal para registar pagamentos (`payment`) ou adiantamentos (`advance`) ao colaborador |
+| Histórico de pagamentos | Lista de todos os pagamentos efetuados ao colaborador (todos os períodos) |
+| Eliminar pagamento | Eliminar um pagamento registado com confirmação |
+
+#### Cálculo do saldo
+```
+Saldo a pagar = Comissão Gerada no período − Total Pago ao Colaborador (todos os períodos)
+```
+> Se o saldo for negativo, significa que já foi pago mais do que o gerado (adiantamento em excesso).
+
+#### Tipos de pagamento ao colaborador
+| Tipo | Descrição |
+|------|-----------|
+| `payment` | Pagamento regular de comissão |
+| `advance` | Adiantamento sobre comissões futuras |
 
 ---
 
-### 6.8 Notificações
+### 6.8 Recursos
+
+**Rota:** `/recursos`
+
+#### O que são recursos
+Recursos representam os espaços físicos e equipamentos da clínica que podem ser reservados por agendamento:
+- **Sala / Gabinete** (`room`) — gabinetes de fisioterapia, salas de tratamento
+- **Equipamento** (`equipment`) — aparelhos específicos (ex: laser, ultrassom)
+- **Ginásio** (`gym`) — espaço de pilates ou exercício
+
+#### Funcionalidades
+| Operação | Descrição |
+|----------|-----------|
+| Listar | Tabela com nome, tipo, capacidade e estado |
+| Criar | Formulário em `/recursos/novo` |
+| Editar | Formulário em `/recursos/[id]/editar` |
+| Activar/Desactivar | Toggle via edição |
+| Eliminar | Soft delete |
+| Restaurar | A partir da vista "Eliminados" |
+
+#### Campos
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| name | String | Nome do recurso (ex: "Gabinete 1") |
+| type | Enum | `room` \| `equipment` \| `gym` |
+| capacity | Int | Número máximo de utilizações simultâneas (padrão: 1) |
+| isActive | Boolean | Se o recurso está disponível para reserva |
+
+#### Componentes
+| Ficheiro | Descrição |
+|----------|-----------|
+| `ResourceForm.tsx` | Formulário de criação/edição |
+| `ResourceList.tsx` | Tabela de listagem com acções de soft delete / restauro |
+
+#### Server Actions (`src/features/recursos/actions.ts`)
+```typescript
+createRecursoAction(formData)     // Criar recurso + audit log
+updateRecursoAction(id, formData) // Actualizar + audit log
+deleteRecursoAction(id)           // Soft delete + audit log
+restoreRecursoAction(id)          // Restaurar + audit log
+```
+
+#### Integração com Agendamentos
+Ao criar ou editar um agendamento é possível seleccionar um ou mais recursos. O sistema verifica automaticamente conflitos — um recurso não pode estar reservado em dois agendamentos activos com horários sobrepostos.
+
+---
+
+### 6.9 Notificações
 
 **Rota:** `/notificacoes`
 
@@ -569,8 +706,8 @@ restorePagamentoAction(id)                // Admin only
 #### Configuração
 ```env
 RESEND_API_KEY=...
-RESEND_FROM_EMAIL=notificacoes@clinicapro.pt
-CLINIC_NAME=ClinicaPro
+RESEND_FROM_EMAIL=notificacoes@globalfisio.pt
+CLINIC_NAME=GlobalFisio
 ```
 
 #### Cron Job — `vercel.json`
@@ -586,7 +723,7 @@ Executa a cada hora (minuto 0).
 
 ---
 
-### 6.9 Auditoria
+### 6.10 Auditoria
 
 **Rota:** `/auditoria`
 
@@ -614,7 +751,7 @@ Todas as operações de escrita em todas as entidades:
 
 ---
 
-### 6.10 Utilizadores
+### 6.11 Utilizadores
 
 **Rota:** `/utilizadores` (apenas admin)
 
@@ -652,6 +789,8 @@ A landing page é uma página de marketing para apresentar o produto. Composta p
 | `About.tsx` | Sobre a plataforma |
 | `Footer.tsx` | Rodapé com links e copyright |
 | `JsonLd.tsx` | Schema.org para SEO |
+| `animations.tsx` | Variantes e helpers de animação Framer Motion |
+| `data.ts` | Dados estáticos da landing (testemunhos, FAQs, serviços, etc.) |
 
 ### SEO
 - `src/app/manifest.ts` — Web App Manifest (PWA)
@@ -699,7 +838,7 @@ src/lib/supabase/
 
 ```
 src/
-├── middleware.ts                          # Middleware Next.js (auth session)
+├── proxy.ts                               # Middleware Next.js 16 (auth session proxy)
 │
 ├── app/
 │   ├── layout.tsx                         # Root layout (fonts, providers, Sonner)
@@ -715,62 +854,83 @@ src/
 │   │   ├── layout.tsx                     # Layout admin (Sidebar + Header)
 │   │   ├── dashboard/page.tsx
 │   │   ├── agendamentos/
-│   │   │   ├── page.tsx                   # Lista + Calendário
+│   │   │   ├── page.tsx                   # Calendário interactivo
 │   │   │   ├── novo/page.tsx              # Criar agendamento
 │   │   │   └── [id]/
-│   │   │       ├── page.tsx               # Detalhe
-│   │   │       └── editar/page.tsx        # Editar
+│   │   │       └── editar/page.tsx        # Editar agendamento
 │   │   ├── clientes/
 │   │   │   ├── page.tsx
 │   │   │   ├── novo/page.tsx
 │   │   │   └── [id]/
-│   │   │       ├── page.tsx
+│   │   │       ├── page.tsx               # Detalhe do cliente
 │   │   │       └── editar/page.tsx
 │   │   ├── colaboradores/
 │   │   │   ├── page.tsx
 │   │   │   ├── novo/page.tsx
 │   │   │   └── [id]/
-│   │   │       ├── page.tsx
+│   │   │       ├── page.tsx               # Detalhe do colaborador
 │   │   │       └── editar/page.tsx
 │   │   ├── servicos/
 │   │   │   ├── page.tsx
 │   │   │   ├── novo/page.tsx
-│   │   │   └── [id]/editar/page.tsx
+│   │   │   └── [id]/
+│   │   │       ├── page.tsx               # Detalhe do serviço
+│   │   │       └── editar/page.tsx
 │   │   ├── pagamentos/
 │   │   │   ├── page.tsx
 │   │   │   ├── novo/page.tsx
 │   │   │   └── [id]/editar/page.tsx
-│   │   ├── comissoes/page.tsx
+│   │   ├── comissoes/
+│   │   │   ├── page.tsx                   # Lista global de comissões
+│   │   │   └── [id]/page.tsx              # Detalhe de comissão por colaborador
 │   │   ├── notificacoes/page.tsx
 │   │   ├── auditoria/page.tsx
+│   │   ├── recursos/
+│   │   │   ├── page.tsx                   # Lista de recursos
+│   │   │   ├── novo/page.tsx              # Criar recurso
+│   │   │   └── [id]/editar/page.tsx       # Editar recurso
 │   │   └── utilizadores/
 │   │       ├── page.tsx
-│   │       └── novo/page.tsx
+│   │       └── novo/
+│   │           ├── page.tsx               # Formulário de convite
+│   │           └── actions.ts             # Server Actions locais de convite
 │   │
 │   ├── api/
 │   │   └── cron/
 │   │       └── notifications/route.ts     # GET — processa fila de notificações
 │   │
 │   ├── auth/
-│   │   └── callback/                      # OAuth callback (Supabase)
+│   │   └── callback/route.ts              # OAuth callback (Supabase)
 │   └── login/page.tsx                     # Página de login
 │
 ├── components/
 │   ├── landing/                           # Componentes da landing page
+│   │   ├── Navbar.tsx, Hero.tsx, Services.tsx, HowItWorks.tsx
+│   │   ├── Benefits.tsx, Team.tsx, Testimonials.tsx, FAQ.tsx
+│   │   ├── CTA.tsx, Contact.tsx, About.tsx, Footer.tsx
+│   │   ├── JsonLd.tsx                     # Schema.org
+│   │   ├── animations.tsx                 # Variantes Framer Motion
+│   │   └── data.ts                        # Dados estáticos
 │   ├── layout/
 │   │   ├── Header.tsx                     # Cabeçalho do painel admin
-│   │   └── Sidebar.tsx                    # Sidebar de navegação
+│   │   ├── Sidebar.tsx                    # Sidebar de navegação
+│   │   └── MobileNav.tsx                  # Navegação inferior mobile
 │   └── ui/                                # Componentes de UI reutilizáveis
 │       ├── badge.tsx
 │       ├── button.tsx
+│       ├── calendar.tsx
 │       ├── card.tsx
 │       ├── input.tsx
 │       ├── label.tsx
+│       ├── popover.tsx
 │       ├── RestoreButton.tsx              # Botão de restauro com confirmação
 │       ├── select.tsx
 │       ├── sheet.tsx
 │       ├── table.tsx
-│       └── textarea.tsx
+│       ├── textarea.tsx
+│       ├── DatePicker.tsx                 # Picker de data com popover
+│       ├── TimePicker.tsx                 # Selector de hora (hora/minuto)
+│       └── DateTimePicker.tsx             # Combinação DatePicker + TimePicker
 │
 ├── constants/
 │   └── index.ts                           # TENANT_ID, categorias, roles, status
@@ -779,46 +939,87 @@ src/
 │   ├── agendamentos/
 │   │   ├── actions.ts                     # Server Actions
 │   │   ├── calendarActions.ts             # Actions específicas do calendário
+│   │   ├── calendarConstants.ts           # Cores e estilos de eventos FullCalendar
 │   │   ├── repository.ts                  # Queries Prisma
 │   │   ├── schema.ts                      # Validação Zod
 │   │   └── components/
+│   │       ├── AgendamentoCalendar.tsx
+│   │       ├── AgendamentoFilters.tsx
+│   │       ├── AgendamentoForm.tsx
+│   │       ├── AgendamentoList.tsx
+│   │       ├── EventModal.tsx
+│   │       ├── QuickCreateModal.tsx
+│   │       └── StatusBadge.tsx
 │   ├── auditoria/
 │   │   ├── queries.ts
 │   │   └── components/
+│   │       ├── AuditFilters.tsx
+│   │       └── AuditLogTable.tsx
 │   ├── auth/
 │   │   ├── actions.ts
 │   │   ├── userActions.ts
 │   │   └── components/
+│   │       ├── InviteUserForm.tsx
+│   │       ├── LoginForm.tsx
+│   │       ├── LogoutButton.tsx
+│   │       └── UserList.tsx
 │   ├── clientes/
 │   │   ├── actions.ts
 │   │   ├── repository.ts
 │   │   ├── schema.ts
 │   │   └── components/
+│   │       ├── ClienteForm.tsx
+│   │       ├── ClienteList.tsx
+│   │       └── ClienteNotes.tsx
 │   ├── colaboradores/
 │   │   ├── actions.ts
+│   │   ├── commissionPaymentActions.ts    # Server Actions de pagamentos de comissão
 │   │   ├── repository.ts
 │   │   ├── schema.ts
 │   │   └── components/
+│   │       ├── ColaboradorForm.tsx
+│   │       ├── ColaboradorList.tsx
+│   │       ├── CommissionRateEditor.tsx
+│   │       ├── DeleteCommissionPaymentButton.tsx
+│   │       ├── PeriodFilter.tsx
+│   │       └── RegisterCommissionPaymentModal.tsx
 │   ├── dashboard/
 │   │   ├── queries.ts
 │   │   └── components/
+│   │       ├── Charts.tsx
+│   │       └── DashboardSkeleton.tsx
 │   ├── pagamentos/
 │   │   ├── actions.ts
 │   │   ├── repository.ts
 │   │   ├── schema.ts
 │   │   └── components/
+│   │       ├── PagamentoDetailSheet.tsx
+│   │       ├── PagamentoFilters.tsx
+│   │       ├── PagamentoForm.tsx
+│   │       ├── PagamentoList.tsx
+│   │       └── PaymentStatusBadge.tsx
+│   ├── recursos/
+│   │   ├── actions.ts                     # Server Actions de recursos
+│   │   ├── repository.ts                  # Queries Prisma + checkResourceConflicts
+│   │   ├── schema.ts                      # Validação Zod (tipos: room, equipment, gym)
+│   │   └── components/
+│   │       ├── ResourceForm.tsx
+│   │       └── ResourceList.tsx
 │   └── servicos/
 │       ├── actions.ts
 │       ├── repository.ts
 │       ├── schema.ts
 │       └── components/
+│           ├── ServicoForm.tsx
+│           └── ServicoList.tsx
 │
 ├── lib/
-│   ├── audit.ts                           # Helper de auditoria
+│   ├── audit.ts                           # Helper de auditoria (createAuditLog)
 │   ├── prisma.ts                          # Prisma client singleton
 │   ├── seo.ts                             # Helpers de metadados SEO
+│   ├── serializers.ts                     # Serialização tipada Decimal→number (Collaborator, Service, Payment)
 │   ├── supabase.ts                        # Re-exports supabase
-│   ├── utils.ts                           # cn(), serializeDecimal(), etc.
+│   ├── utils.ts                           # cn(), serializeDecimal(), formatCurrency(), formatDate()
 │   └── supabase/
 │       ├── admin.ts
 │       ├── client.ts
@@ -848,7 +1049,6 @@ src/
 | `/dashboard` | Dashboard analítico | Todos |
 | `/agendamentos` | Calendário de agendamentos | Todos |
 | `/agendamentos/novo` | Criar agendamento | Todos |
-| `/agendamentos/[id]` | Detalhe do agendamento | Todos |
 | `/agendamentos/[id]/editar` | Editar agendamento | Todos |
 | `/clientes` | Lista de clientes | Todos |
 | `/clientes/novo` | Criar cliente | Todos |
@@ -860,13 +1060,18 @@ src/
 | `/colaboradores/[id]/editar` | Editar colaborador | Admin |
 | `/servicos` | Lista de serviços | Todos |
 | `/servicos/novo` | Criar serviço | Todos |
+| `/servicos/[id]` | Detalhe do serviço | Todos |
 | `/servicos/[id]/editar` | Editar serviço | Todos |
 | `/pagamentos` | Lista de pagamentos | Admin |
 | `/pagamentos/novo` | Criar pagamento | Admin |
 | `/pagamentos/[id]/editar` | Editar pagamento | Admin |
 | `/comissoes` | Relatório de comissões | Admin |
+| `/comissoes/[id]` | Detalhe de comissões por colaborador | Admin |
 | `/notificacoes` | Lista de notificações | Admin |
 | `/auditoria` | Log de auditoria | Admin |
+| `/recursos` | Lista de recursos (salas, equipamentos) | Admin |
+| `/recursos/novo` | Criar recurso | Admin |
+| `/recursos/[id]/editar` | Editar recurso | Admin |
 | `/utilizadores` | Gestão de utilizadores | Admin |
 | `/utilizadores/novo` | Criar utilizador | Admin |
 
@@ -892,9 +1097,11 @@ Todas as Server Actions seguem o padrão:
 | Utilizadores | `inviteUser`, `updateUserRole`, `deleteUser` |
 | Clientes | `createClienteAction`, `updateClienteAction`, `deleteClienteAction`, `restoreClienteAction`, `updateClienteNotesAction` |
 | Colaboradores | `createColaboradorAction`, `updateColaboradorAction`, `deleteColaboradorAction`, `restoreColaboradorAction`, `updateCommissionRateAction` |
+| Comissões | `createCommissionPaymentAction`, `deleteCommissionPaymentAction` |
 | Serviços | `createServicoAction`, `updateServicoAction`, `deleteServicoAction`, `restoreServicoAction` |
 | Agendamentos | `createAgendamentoAction`, `updateAgendamentoAction`, `cancelAgendamentoAction`, `deleteAgendamentoAction`, `restoreAgendamentoAction` |
 | Pagamentos | `createPagamentoAction`, `updatePagamentoAction`, `markAsPaidAction`, `markAsPendingAction`, `deletePagamentoAction`, `restorePagamentoAction` |
+| Recursos | `createRecursoAction`, `updateRecursoAction`, `deleteRecursoAction`, `restoreRecursoAction` |
 
 ---
 
@@ -914,12 +1121,18 @@ Biblioteca de componentes customizados em `src/components/ui/`:
 | `Sheet / SheetContent` | Painel lateral deslizante (drawer) |
 | `Table / TableRow / TableCell` | Tabela de dados |
 | `RestoreButton` | Botão de restauro com confirmação inline |
+| `Popover` | Painel flutuante de sobreposição |
+| `Calendar` | Picker de calendário (selecção de datas) |
+| `DatePicker` | Campo de data com popover de calendário |
+| `TimePicker` | Selector de hora com dropdowns de hora/minuto |
+| `DateTimePicker` | Combinação de DatePicker + TimePicker |
 
 ### Layout Admin
 | Componente | Descrição |
 |-----------|-----------|
 | `Sidebar` | Barra lateral com navegação principal, ícones e links activos |
 | `Header` | Cabeçalho de página com título, descrição e slot para acções |
+| `MobileNav` | Navegação inferior para dispositivos móveis |
 
 ---
 
@@ -931,8 +1144,11 @@ Biblioteca de componentes customizados em `src/components/ui/`:
 - **Server Actions** para todas as mutações (formulários e acções)
 - **Repository pattern** — queries Prisma isoladas em `repository.ts`
 
+### Middleware (Next.js 16)
+Em Next.js 16 o ficheiro de middleware passou a chamar-se `proxy.ts`. O ficheiro `src/proxy.ts` exporta a função `proxy()` e o objecto `config` com o `matcher`. Internamente delega para `updateSession` do Supabase para renovação de sessão SSR.
+
 ### Soft Delete
-Todos os registos principais (Client, Collaborator, Service, Appointment, Payment) usam soft delete:
+Todos os registos principais (Client, Collaborator, Service, Appointment, Payment, Resource) usam soft delete:
 - `isDeleted: Boolean @default(false)`
 - `deletedAt: DateTime?`
 - A UI mostra uma vista separada "Eliminados" com botão de restauro
@@ -961,9 +1177,5 @@ Todos os registos principais (Client, Collaborator, Service, Appointment, Paymen
 ### Tipos e Segurança
 - TypeScript strict mode
 - Tipos derivados dos schemas Zod (`z.infer<typeof schema>`)
-- `serializeDecimal()` utilitário para converter `Decimal` do Prisma em números para serialização JSON entre Server/Client Components
-
----
-
-*Documento gerado automaticamente em 2 de Junho de 2026.*
-
+- **`src/lib/serializers.ts`** — módulo dedicado de serialização tipada com tipos exportados (`SerializedCollaborator`, `SerializedService`, `SerializedPayment`) e funções de conversão (`serializeCollaborator`, `serializeService`, `serializePayment` e variantes de lista). Converte campos `Decimal` do Prisma em `number` para serialização JSON segura entre Server e Client Components.
+- **`src/lib/utils.ts`** — utilitários gerais: `cn()` (merge de classes), `serializeDecimal()` (conversão genérica), `formatCurrency()`, `formatDate()`

@@ -23,7 +23,7 @@ export function Benefits() {
               <span className="text-emerald-600">merece</span>
             </h2>
             <p className="text-slate-500 leading-relaxed mb-8 max-w-md">
-              Na ClinicaPro, cada detalhe é pensado para garantir a melhor experiência de tratamento possível, desde o momento que entra até ao total restabelecimento da sua saúde.
+              Na GlobalFisio, cada detalhe é pensado para garantir a melhor experiência de tratamento possível, desde o momento que entra até ao total restabelecimento da sua saúde.
             </p>
 
             {/* Highlight metrics */}

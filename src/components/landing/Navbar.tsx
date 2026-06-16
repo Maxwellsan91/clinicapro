@@ -42,7 +42,7 @@ export function Navbar() {
             <div className="w-8 h-8 rounded-xl bg-linear-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-sm group-hover:shadow-blue-200 transition-shadow">
               <Heart className="w-4 h-4 text-white" fill="white" />
             </div>
-            <span className="font-bold text-lg text-slate-900 tracking-tight">Clinica<span className="text-blue-600">Pro</span></span>
+            <span className="font-bold text-lg text-slate-900 tracking-tight">Global<span className="text-blue-600">Fisio</span></span>
           </button>
 
           {/* Desktop Nav */}

@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { SITE_NAME } from "@/lib/seo";
 
 export const runtime = "edge";
-export const alt = "ClinicaPro — Fisioterapia, Pilates e Massagem em Lisboa";
+export const alt = "GlobalFisio — Fisioterapia, Pilates e Massagem em Lisboa";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -99,7 +99,7 @@ export default function OGImage() {
           fontSize: 18,
           fontWeight: 500,
         }}>
-          clinicapro.pt
+          globalfisio.pt
         </div>
       </div>
     ),

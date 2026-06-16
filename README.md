@@ -1,4 +1,4 @@
-# ClinicaPro — Plataforma SaaS de Gestão de Clínicas
+# GlobalFisio — Plataforma SaaS de Gestão de Clínicas
 
 Plataforma multi-tenant para gestão de clínicas de fisioterapia, pilates e massagem.
 

@@ -169,7 +169,7 @@ export function Hero() {
                     </svg>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-white">ClinicaPro</p>
+                    <p className="text-2xl font-bold text-white">GlobalFisio</p>
                     <p className="text-blue-200 text-sm mt-1">Centro Clínico Premium</p>
                   </div>
                   <div className="flex gap-2 flex-wrap justify-center">

@@ -85,8 +85,8 @@ export const metadata: Metadata = {
     title: `${SITE_NAME} — Fisioterapia, Pilates e Massagem em Lisboa`,
     description: SITE_DESCRIPTION,
     images: [DEFAULT_OG_IMAGE],
-    creator: "@clinicapro",
-    site: "@clinicapro",
+    creator: "@globalfisio",
+    site: "@globalfisio",
   },
 
   // App / PWA icons

@@ -8,7 +8,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { deleteColaboradorAction, restoreColaboradorAction } from "../actions";
 import { RestoreButton } from "@/components/ui/RestoreButton";
 import { Edit, Trash2, Eye } from "lucide-react";
-import type { Collaborator } from "@prisma/client";
+import type { SerializedCollaborator } from "@/lib/serializers";
 
 function DeleteButton({ id }: { id: string }) {
   const [isPending, startTransition] = useTransition();
@@ -24,7 +24,7 @@ function DeleteButton({ id }: { id: string }) {
   );
 }
 
-export function ColaboradorList({ colaboradores, showDeleted = false }: { colaboradores: Collaborator[]; showDeleted?: boolean }) {
+export function ColaboradorList({ colaboradores, showDeleted = false }: { colaboradores: SerializedCollaborator[]; showDeleted?: boolean }) {
   if (colaboradores.length === 0) {
     return (
       <div className="text-center py-12 text-gray-500">

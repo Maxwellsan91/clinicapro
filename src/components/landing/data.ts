@@ -155,7 +155,7 @@ export const testimonials = [
   {
     name: "Maria Oliveira",
     role: "Paciente — Fisioterapia",
-    comment: "Depois de meses com dores crónicas nas costas, a equipa da ClinicaPro conseguiu o que parecia impossível. Em 8 semanas recuperei completamente a minha mobilidade. O acompanhamento é excecional.",
+    comment: "Depois de meses com dores crónicas nas costas, a equipa da GlobalFisio conseguiu o que parecia impossível. Em 8 semanas recuperei completamente a minha mobilidade. O acompanhamento é excecional.",
     rating: 5,
     initials: "MO",
     gradient: "from-blue-400 to-blue-600",
@@ -163,7 +163,7 @@ export const testimonials = [
   {
     name: "Carlos Mendes",
     role: "Atleta — Recuperação Desportiva",
-    comment: "Lesionei-me a um mês de uma competição importante. Com o protocolo de recuperação intensiva da ClinicaPro consegui competir e ainda fiz recorde pessoal. Profissionalismo exemplar.",
+    comment: "Lesionei-me a um mês de uma competição importante. Com o protocolo de recuperação intensiva da GlobalFisio consegui competir e ainda fiz recorde pessoal. Profissionalismo exemplar.",
     rating: 5,
     initials: "CM",
     gradient: "from-emerald-400 to-emerald-600",
@@ -179,7 +179,7 @@ export const testimonials = [
   {
     name: "Pedro Alves",
     role: "Paciente — Reabilitação Pós-cirúrgica",
-    comment: "Após a minha cirurgia ao joelho, a recuperação com a ClinicaPro superou todas as expectativas do meu médico. Voltei a correr em 4 meses, quando a previsão era de 6 a 8.",
+    comment: "Após a minha cirurgia ao joelho, a recuperação com a GlobalFisio superou todas as expectativas do meu médico. Voltei a correr em 4 meses, quando a previsão era de 6 a 8.",
     rating: 5,
     initials: "PA",
     gradient: "from-amber-400 to-amber-600",
