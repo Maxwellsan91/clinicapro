@@ -1,12 +1,18 @@
 import { prisma } from "@/lib/prisma";
 import type {
+  FinancialCalculationType,
   FinancialCategoryInput,
   FinancialEntryInput,
   SaveMonthInput,
 } from "./schema";
 
 const ACTIVE = { isDeleted: false } as const;
-const COST_TYPES = ["expense", "tax", "insurance", "investment"] as const;
+const OPERATIONAL_COST_TYPES: FinancialCalculationType[] = [
+  "operational_expense",
+  "personnel_cost",
+  "tax",
+  "insurance",
+];
 
 function monthRange(year: number, month: number) {
   const start = new Date(year, month - 1, 1);
@@ -22,6 +28,15 @@ function previousMonth(year: number, month: number) {
 
 function toNumber(value: unknown) {
   return Number(value ?? 0);
+}
+
+function legacyTypeForCalculation(calculationType: FinancialCalculationType) {
+  if (calculationType === "income") return "revenue";
+  if (calculationType === "tax") return "tax";
+  if (calculationType === "insurance") return "insurance";
+  if (calculationType === "investment") return "investment";
+  if (calculationType === "saving_reserve") return "savings";
+  return "expense";
 }
 
 export async function findFinancialCategories(tenantId: string, withDeleted = false) {
@@ -48,7 +63,8 @@ export async function createFinancialCategory(tenantId: string, data: FinancialC
       tenantId,
       name: data.name,
       group: data.group,
-      type: data.type,
+      type: legacyTypeForCalculation(data.calculationType),
+      calculationType: data.calculationType,
       defaultValue: data.defaultValue ?? null,
       order: data.order ?? 0,
       isActive: data.isActive ?? true,
@@ -63,7 +79,8 @@ export async function updateFinancialCategory(id: string, tenantId: string, data
     data: {
       name: data.name,
       group: data.group,
-      type: data.type,
+      type: legacyTypeForCalculation(data.calculationType),
+      calculationType: data.calculationType,
       defaultValue: data.defaultValue ?? null,
       order: data.order ?? 0,
       isActive: data.isActive ?? false,
@@ -132,6 +149,7 @@ export async function getFinancialMonth(tenantId: string, year: number, month: n
       categoryName: category.name,
       group: category.group,
       type: category.type,
+      calculationType: category.calculationType as FinancialCalculationType,
       plannedValue: toNumber(entry?.plannedValue ?? category.defaultValue),
       actualValue: toNumber(entry?.actualValue),
       notes: entry?.notes ?? "",
@@ -141,13 +159,25 @@ export async function getFinancialMonth(tenantId: string, year: number, month: n
 
   const manualRevenueAdjustment = toNumber(summary?.manualRevenueAdjustment);
   const savingsAmount = toNumber(summary?.savingsAmount);
-  const totalCosts = rows
-    .filter((row) => COST_TYPES.includes(row.type as (typeof COST_TYPES)[number]))
+  const categoryIncome = rows
+    .filter((row) => row.calculationType === "income")
     .reduce((total, row) => total + row.actualValue, 0);
-  const realizedValue = paidRevenue + manualRevenueAdjustment;
-  const finalResult = realizedValue - totalCosts;
+  const operationalCosts = rows
+    .filter((row) => OPERATIONAL_COST_TYPES.includes(row.calculationType))
+    .reduce((total, row) => total + row.actualValue, 0);
+  const savingsReserve = rows
+    .filter((row) => row.calculationType === "saving_reserve")
+    .reduce((total, row) => total + row.actualValue, 0) + savingsAmount;
+  const investments = rows
+    .filter((row) => row.calculationType === "investment")
+    .reduce((total, row) => total + row.actualValue, 0);
+  const internalTransfers = rows
+    .filter((row) => row.calculationType === "internal_transfer")
+    .reduce((total, row) => total + row.actualValue, 0);
+  const realizedRevenue = paidRevenue + manualRevenueAdjustment + categoryIncome;
+  const operationalResult = realizedRevenue - operationalCosts;
   const previousBalance = toNumber(previousSummary?.carriedBalance);
-  const carriedBalance = previousBalance + finalResult - savingsAmount;
+  const availableBalance = previousBalance + operationalResult - savingsReserve - investments;
 
   return {
     year,
@@ -160,10 +190,16 @@ export async function getFinancialMonth(tenantId: string, year: number, month: n
       notes: summary?.notes ?? "",
       previousBalance,
       paidRevenue,
-      realizedValue,
-      totalCosts,
-      finalResult,
-      carriedBalance,
+      categoryIncome,
+      realizedRevenue,
+      operationalCosts,
+      operationalResult,
+      savingsReserve,
+      investments,
+      internalTransfers,
+      availableBalance,
+      nextMonthBalance: availableBalance,
+      carriedBalance: availableBalance,
     },
   };
 }
@@ -172,13 +208,29 @@ export async function saveFinancialMonth(tenantId: string, data: SaveMonthInput)
   const monthData = await getFinancialMonth(tenantId, data.year, data.month);
   const manualRevenueAdjustment = data.manualRevenueAdjustment ?? 0;
   const savingsAmount = data.savingsAmount ?? 0;
-  const totalCosts = data.entries.reduce((total, entry) => {
-    const row = monthData.rows.find((item) => item.categoryId === entry.categoryId);
-    if (!row || !COST_TYPES.includes(row.type as (typeof COST_TYPES)[number])) return total;
+  const entriesWithRows = data.entries.map((entry) => ({
+    entry,
+    row: monthData.rows.find((item) => item.categoryId === entry.categoryId),
+  }));
+  const categoryIncome = entriesWithRows.reduce((total, { entry, row }) => {
+    if (row?.calculationType !== "income") return total;
     return total + (entry.actualValue ?? 0);
   }, 0);
-  const realizedValue = monthData.summary.paidRevenue + manualRevenueAdjustment;
-  const carriedBalance = monthData.summary.previousBalance + realizedValue - totalCosts - savingsAmount;
+  const operationalCosts = entriesWithRows.reduce((total, { entry, row }) => {
+    if (!row || !OPERATIONAL_COST_TYPES.includes(row.calculationType)) return total;
+    return total + (entry.actualValue ?? 0);
+  }, 0);
+  const savingsReserve = entriesWithRows.reduce((total, { entry, row }) => {
+    if (row?.calculationType !== "saving_reserve") return total;
+    return total + (entry.actualValue ?? 0);
+  }, savingsAmount);
+  const investments = entriesWithRows.reduce((total, { entry, row }) => {
+    if (row?.calculationType !== "investment") return total;
+    return total + (entry.actualValue ?? 0);
+  }, 0);
+  const realizedRevenue = monthData.summary.paidRevenue + manualRevenueAdjustment + categoryIncome;
+  const operationalResult = realizedRevenue - operationalCosts;
+  const carriedBalance = monthData.summary.previousBalance + operationalResult - savingsReserve - investments;
 
   return prisma.$transaction(async (tx) => {
     await Promise.all(
@@ -335,12 +387,18 @@ export async function addAdHocFinancialEntry(tenantId: string, data: FinancialEn
 }
 
 export async function getFinancialAnnualSummary(tenantId: string, year: number) {
-  const categories = await findActiveFinancialCategories(tenantId);
-  const entries = await prisma.financialEntry.findMany({
-    where: { tenantId, year },
-    include: { category: true },
-  });
+  const [categories, entries, summaries] = await Promise.all([
+    findActiveFinancialCategories(tenantId),
+    prisma.financialEntry.findMany({
+      where: { tenantId, year },
+      include: { category: true },
+    }),
+    prisma.financialMonthlySummary.findMany({
+      where: { tenantId, year },
+    }),
+  ]);
   const entryMap = new Map(entries.map((entry) => [`${entry.categoryId}:${entry.month}`, entry]));
+  const summaryMap = new Map(summaries.map((summary) => [summary.month, summary]));
   const rows = categories.map((category) => {
     const months = Array.from({ length: 12 }, (_, index) => {
       const entry = entryMap.get(`${category.id}:${index + 1}`);
@@ -351,18 +409,69 @@ export async function getFinancialAnnualSummary(tenantId: string, year: number) 
       categoryName: category.name,
       group: category.group,
       type: category.type,
+      calculationType: category.calculationType as FinancialCalculationType,
       months,
       total: months.reduce((total, value) => total + value, 0),
     };
   });
-  const monthTotals = Array.from({ length: 12 }, (_, index) =>
-    rows.reduce((total, row) => total + row.months[index], 0)
+  const paidRevenueByMonth = await Promise.all(
+    Array.from({ length: 12 }, (_, index) => getPaidRevenueForMonth(tenantId, year, index + 1))
   );
+  const totalRevenue = Array.from({ length: 12 }, (_, index) => {
+    const categoryIncome = rows
+      .filter((row) => row.calculationType === "income")
+      .reduce((total, row) => total + row.months[index], 0);
+    return paidRevenueByMonth[index] + toNumber(summaryMap.get(index + 1)?.manualRevenueAdjustment) + categoryIncome;
+  });
+  const totalOperationalCosts = Array.from({ length: 12 }, (_, index) =>
+    rows
+      .filter((row) => OPERATIONAL_COST_TYPES.includes(row.calculationType))
+      .reduce((total, row) => total + row.months[index], 0)
+  );
+  const operationalResult = totalRevenue.map((value, index) => value - totalOperationalCosts[index]);
+  const totalSavingsReserve = Array.from({ length: 12 }, (_, index) => {
+    const categorySavings = rows
+      .filter((row) => row.calculationType === "saving_reserve")
+      .reduce((total, row) => total + row.months[index], 0);
+    return categorySavings + toNumber(summaryMap.get(index + 1)?.savingsAmount);
+  });
+  const totalInvestments = Array.from({ length: 12 }, (_, index) =>
+    rows
+      .filter((row) => row.calculationType === "investment")
+      .reduce((total, row) => total + row.months[index], 0)
+  );
+  const finalBalance = Array.from({ length: 12 }, (_, index) =>
+    toNumber(summaryMap.get(index + 1)?.carriedBalance)
+  );
+  const monthTotals = rows.reduce(
+    (totals, row) => totals.map((value, index) => value + row.months[index]),
+    Array.from({ length: 12 }, () => 0)
+  );
+
+  function total(values: number[]) {
+    return values.reduce((sum, value) => sum + value, 0);
+  }
 
   return {
     year,
     rows,
     monthTotals,
     annualTotal: monthTotals.reduce((total, value) => total + value, 0),
+    footer: {
+      totalRevenue,
+      totalOperationalCosts,
+      operationalResult,
+      totalSavingsReserve,
+      totalInvestments,
+      finalBalance,
+      annual: {
+        totalRevenue: total(totalRevenue),
+        totalOperationalCosts: total(totalOperationalCosts),
+        operationalResult: total(operationalResult),
+        totalSavingsReserve: total(totalSavingsReserve),
+        totalInvestments: total(totalInvestments),
+        finalBalance: finalBalance[11] || finalBalance.findLast((value) => value !== 0) || 0,
+      },
+    },
   };
 }

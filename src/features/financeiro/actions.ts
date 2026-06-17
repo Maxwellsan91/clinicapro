@@ -41,6 +41,7 @@ function parseCategoryForm(formData: FormData) {
     name: formData.get("name"),
     group: formData.get("group"),
     type: formData.get("type"),
+    calculationType: formData.get("calculationType"),
     defaultValue: formData.get("defaultValue"),
     order: formData.get("order"),
     isActive: formData.get("isActive"),

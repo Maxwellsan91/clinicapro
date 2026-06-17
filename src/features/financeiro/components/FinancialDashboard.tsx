@@ -14,6 +14,7 @@ interface FinancialDashboardProps {
       categoryName: string;
       group: string;
       type: string;
+      calculationType: string;
       plannedValue: number;
       actualValue: number;
       notes: string;
@@ -23,9 +24,15 @@ interface FinancialDashboardProps {
       savingsAmount: number;
       notes: string;
       paidRevenue: number;
-      realizedValue: number;
-      totalCosts: number;
-      finalResult: number;
+      categoryIncome: number;
+      realizedRevenue: number;
+      operationalCosts: number;
+      operationalResult: number;
+      savingsReserve: number;
+      investments: number;
+      availableBalance: number;
+      previousBalance: number;
+      nextMonthBalance: number;
       carriedBalance: number;
     };
   };

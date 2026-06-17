@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +18,7 @@ interface FinancialRow {
   categoryName: string;
   group: string;
   type: string;
+  calculationType: string;
   plannedValue: number;
   actualValue: number;
   notes: string;
@@ -42,16 +43,52 @@ export function FinancialMonthTable({ year, month, rows, summary }: FinancialMon
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const totals = useMemo(() => {
-    return entries.reduce(
-      (acc, entry) => {
-        acc.planned += Number(entry.plannedValue || 0);
-        acc.actual += Number(entry.actualValue || 0);
-        return acc;
-      },
-      { planned: 0, actual: 0 }
-    );
+  const sections = useMemo(() => {
+    const config = [
+      { key: "income", label: "Receitas" },
+      { key: "personnel_cost", label: "Custos com pessoal" },
+      { key: "fixed_expense", label: "Despesas fixas" },
+      { key: "variable_expense", label: "Despesas variáveis" },
+      { key: "tax", label: "Impostos e contribuições" },
+      { key: "insurance", label: "Seguros" },
+      { key: "investment", label: "Investimentos" },
+      { key: "saving_reserve", label: "Reservas e poupança" },
+      { key: "internal_transfer", label: "Transferências internas" },
+    ];
+
+    function sectionKey(entry: FinancialRow) {
+      if (entry.calculationType === "operational_expense") {
+        return entry.group === "Despesas Fixas" ? "fixed_expense" : "variable_expense";
+      }
+      return entry.calculationType;
+    }
+
+    return config
+      .map((section) => {
+        const items = entries.filter((entry) => sectionKey(entry) === section.key);
+        const totals = items.reduce(
+          (acc, entry) => ({
+            planned: acc.planned + Number(entry.plannedValue || 0),
+            actual: acc.actual + Number(entry.actualValue || 0),
+          }),
+          { planned: 0, actual: 0 }
+        );
+        return { ...section, items, totals };
+      })
+      .filter((section) => section.items.length > 0);
   }, [entries]);
+
+  const totals = useMemo(
+    () =>
+      sections.reduce(
+        (acc, section) => ({
+          planned: acc.planned + section.totals.planned,
+          actual: acc.actual + section.totals.actual,
+        }),
+        { planned: 0, actual: 0 }
+      ),
+    [sections]
+  );
 
   function updateEntry(categoryId: string, field: "plannedValue" | "actualValue" | "notes", value: string) {
     setEntries((current) =>
@@ -115,7 +152,7 @@ export function FinancialMonthTable({ year, month, rows, summary }: FinancialMon
             />
           </label>
           <label className="space-y-1.5">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Valor para poupança</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Reserva manual</span>
             <Input
               type="number"
               step="0.01"
@@ -166,54 +203,73 @@ export function FinancialMonthTable({ year, month, rows, summary }: FinancialMon
           <TableHeader>
             <TableRow className="bg-slate-50">
               <TableHead>Categoria</TableHead>
-              <TableHead>Grupo</TableHead>
-              <TableHead className="min-w-36">Valor previsto</TableHead>
-              <TableHead className="min-w-36">Valor realizado</TableHead>
+              <TableHead className="min-w-36">Previsto</TableHead>
+              <TableHead className="min-w-36">Realizado</TableHead>
               <TableHead>Diferença</TableHead>
               <TableHead className="min-w-64">Observações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {entries.map((entry) => {
-              const difference = Number(entry.actualValue || 0) - Number(entry.plannedValue || 0);
-              return (
-                <TableRow key={entry.categoryId}>
-                  <TableCell className="font-medium text-slate-900">{entry.categoryName}</TableCell>
-                  <TableCell className="text-slate-500">{entry.group}</TableCell>
-                  <TableCell>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={entry.plannedValue || ""}
-                      onChange={(event) => updateEntry(entry.categoryId, "plannedValue", event.target.value)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={entry.actualValue || ""}
-                      onChange={(event) => updateEntry(entry.categoryId, "actualValue", event.target.value)}
-                    />
-                  </TableCell>
-                  <TableCell className={difference >= 0 ? "font-semibold text-emerald-600" : "font-semibold text-red-600"}>
-                    {formatCurrency(difference)}
-                  </TableCell>
-                  <TableCell>
-                    <Textarea
-                      rows={2}
-                      value={entry.notes}
-                      onChange={(event) => updateEntry(entry.categoryId, "notes", event.target.value)}
-                      className="min-h-16"
-                    />
+            {sections.map((section) => (
+              <Fragment key={section.key}>
+                <TableRow className="bg-slate-100/80 hover:bg-slate-100/80">
+                  <TableCell colSpan={5} className="py-3 text-xs font-bold uppercase tracking-wider text-slate-600">
+                    {section.label}
                   </TableCell>
                 </TableRow>
-              );
-            })}
+                {section.items.map((entry) => {
+                  const difference = Number(entry.actualValue || 0) - Number(entry.plannedValue || 0);
+                  const isIncome = entry.calculationType === "income";
+                  const isPositive = difference >= 0;
+                  const diffColor = isIncome
+                    ? isPositive ? "text-emerald-600" : "text-red-600"
+                    : isPositive ? "text-red-600" : "text-emerald-600";
+                  return (
+                    <TableRow key={entry.categoryId}>
+                      <TableCell className="font-medium text-slate-900">{entry.categoryName}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={entry.plannedValue || ""}
+                          onChange={(event) => updateEntry(entry.categoryId, "plannedValue", event.target.value)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={entry.actualValue || ""}
+                          onChange={(event) => updateEntry(entry.categoryId, "actualValue", event.target.value)}
+                        />
+                      </TableCell>
+                      <TableCell className={`font-semibold ${diffColor}`}>
+                        {formatCurrency(difference)}
+                      </TableCell>
+                      <TableCell>
+                        <Textarea
+                          rows={2}
+                          value={entry.notes}
+                          onChange={(event) => updateEntry(entry.categoryId, "notes", event.target.value)}
+                          className="min-h-16"
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                <TableRow className="bg-slate-50 font-semibold">
+                  <TableCell>Subtotal {section.label.toLowerCase()}</TableCell>
+                  <TableCell>{formatCurrency(section.totals.planned)}</TableCell>
+                  <TableCell>{formatCurrency(section.totals.actual)}</TableCell>
+                  <TableCell>{formatCurrency(section.totals.actual - section.totals.planned)}</TableCell>
+                  <TableCell />
+                </TableRow>
+              </Fragment>
+            ))}
             <TableRow className="bg-slate-50 font-semibold">
-              <TableCell colSpan={2}>Totais lançados</TableCell>
+              <TableCell>Totais lançados</TableCell>
               <TableCell>{formatCurrency(totals.planned)}</TableCell>
               <TableCell>{formatCurrency(totals.actual)}</TableCell>
               <TableCell>{formatCurrency(totals.actual - totals.planned)}</TableCell>

@@ -223,6 +223,7 @@ model FinancialCategory {
   name         String
   group        String
   type         String
+  calculationType String @default("operational_expense")
   defaultValue Decimal? @db.Decimal(10, 2)
   order        Int      @default(0)
   isActive     Boolean  @default(true)
@@ -236,6 +237,7 @@ model FinancialCategory {
   @@index([tenantId])
   @@index([group])
   @@index([type])
+  @@index([calculationType])
   @@index([order])
 }
 

@@ -424,55 +424,57 @@ async function main() {
 
   // ── 9. Categorias Financeiras Internas ────────────────────────────────────
   const financialCategories = [
-    ["Vencimento Pedro", "Pessoal", "expense"],
-    ["Vencimento Rodrigo", "Pessoal", "expense"],
-    ["Despesas de Deslocações", "Pessoal", "expense"],
-    ["Vencimento Bruna", "Pessoal", "expense"],
-    ["Vencimento Maria", "Pessoal", "expense"],
-    ["Renda", "Despesas Fixas", "expense"],
-    ["Contabilista", "Despesas Fixas", "expense"],
-    ["Água", "Despesas Fixas", "expense"],
-    ["Luz", "Despesas Fixas", "expense"],
-    ["Vodafone", "Despesas Fixas", "expense"],
-    ["Comissões CGD", "Despesas Fixas", "expense"],
-    ["Fisiocreme", "Despesas Variáveis", "expense"],
-    ["Exaclean", "Despesas Variáveis", "expense"],
-    ["Diversos", "Despesas Variáveis", "expense"],
-    ["Crédito Obras", "Investimento", "investment"],
-    ["Zappy", "Despesas Variáveis", "expense"],
-    ["ProSegur", "Despesas Fixas", "expense"],
-    ["Técnicas", "Pessoal", "expense"],
-    ["Recepção", "Pessoal", "expense"],
-    ["Gasóleo", "Despesas Variáveis", "expense"],
-    ["IRC / Pagamentos por Conta", "Impostos e Contribuições", "tax"],
-    ["Seguro x12", "Seguros", "insurance"],
-    ["Seg. Acid. Trabalho x12", "Seguros", "insurance"],
-    ["ERS x12", "Impostos e Contribuições", "tax"],
-    ["TOC online x12", "Despesas Fixas", "expense"],
-    ["Poupança para Formação", "Poupança e Reservas", "savings"],
-    ["Poupança Subsídio Férias + Natal", "Poupança e Reservas", "savings"],
-    ["Investimento / Liquidar Crédito", "Investimento", "investment"],
-    ["Reserva", "Poupança e Reservas", "savings"],
+    ["Vencimento Pedro", "Pessoal", "expense", "personnel_cost"],
+    ["Vencimento Rodrigo", "Pessoal", "expense", "personnel_cost"],
+    ["Despesas de Deslocações", "Despesas Variáveis", "expense", "operational_expense"],
+    ["Vencimento Bruna", "Pessoal", "expense", "personnel_cost"],
+    ["Vencimento Maria", "Pessoal", "expense", "personnel_cost"],
+    ["Renda", "Despesas Fixas", "expense", "operational_expense"],
+    ["Contabilista", "Despesas Fixas", "expense", "operational_expense"],
+    ["Água", "Despesas Fixas", "expense", "operational_expense"],
+    ["Luz", "Despesas Fixas", "expense", "operational_expense"],
+    ["Vodafone", "Despesas Fixas", "expense", "operational_expense"],
+    ["Comissões CGD", "Despesas Fixas", "expense", "operational_expense"],
+    ["Fisiocreme", "Despesas Variáveis", "expense", "operational_expense"],
+    ["Exaclean", "Despesas Variáveis", "expense", "operational_expense"],
+    ["Diversos", "Despesas Variáveis", "expense", "operational_expense"],
+    ["Crédito Obras", "Investimento", "investment", "investment"],
+    ["Zappy", "Despesas Variáveis", "expense", "operational_expense"],
+    ["ProSegur", "Despesas Fixas", "expense", "operational_expense"],
+    ["Técnicas", "Pessoal", "expense", "personnel_cost"],
+    ["Recepção", "Pessoal", "expense", "personnel_cost"],
+    ["Gasóleo", "Despesas Variáveis", "expense", "operational_expense"],
+    ["IRC / Pagamentos por Conta", "Impostos e Contribuições", "tax", "tax"],
+    ["Seguro x12", "Seguros", "insurance", "insurance"],
+    ["Seg. Acid. Trabalho x12", "Seguros", "insurance", "insurance"],
+    ["ERS x12", "Impostos e Contribuições", "tax", "tax"],
+    ["TOC online x12", "Impostos e Contribuições", "tax", "tax"],
+    ["Poupança para Formação", "Poupança e Reservas", "savings", "saving_reserve"],
+    ["Poupança Subsídio Férias + Natal", "Poupança e Reservas", "savings", "saving_reserve"],
+    ["Investimento / Liquidar Crédito", "Investimento", "investment", "investment"],
+    ["Reserva", "Poupança e Reservas", "savings", "saving_reserve"],
+    ["Poupança Mensal", "Poupança e Reservas", "savings", "saving_reserve"],
   ] as const;
 
   await Promise.all(
-    financialCategories.map(([name, group, type], index) =>
+    financialCategories.map(([name, group, type, calculationType], index) =>
       prisma.financialCategory.upsert({
         where: { id: `fin-cat-seed-${String(index + 1).padStart(3, "0")}` },
-        update: { name, group, type, order: index + 1, isActive: true, isDeleted: false, deletedAt: null },
+        update: { name, group, type, calculationType, order: index + 1, isActive: true, isDeleted: false, deletedAt: null },
         create: {
           id: `fin-cat-seed-${String(index + 1).padStart(3, "0")}`,
           tenantId: TENANT_ID,
           name,
           group,
           type,
+          calculationType,
           order: index + 1,
           isActive: true,
         },
       })
     )
   );
-  console.log("✅  29 categorias financeiras internas criadas");
+  console.log("✅  30 categorias financeiras internas criadas");
 
   // ── Resumo final ───────────────────────────────────────────────────────────
   const [nTen, nCol, nSvc, nCli, nApt, nPay, nRes, nFinCat] = await Promise.all([

@@ -6,26 +6,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { createFinancialCategoryAction, updateFinancialCategoryAction } from "../actions";
-import { FINANCIAL_GROUPS, FINANCIAL_TYPES } from "../schema";
+import {
+  FINANCIAL_CALCULATION_LABELS,
+  FINANCIAL_CALCULATION_TYPES,
+  FINANCIAL_GROUPS,
+} from "../schema";
 
 interface Category {
   id: string;
   name: string;
   group: string;
   type: string;
+  calculationType: string;
   defaultValue: number | string | null;
   order: number;
   isActive: boolean;
 }
-
-const TYPE_LABELS: Record<string, string> = {
-  expense: "Despesa",
-  tax: "Imposto",
-  insurance: "Seguro",
-  investment: "Investimento",
-  savings: "Poupança",
-  revenue: "Receita",
-};
 
 export function FinancialCategoryForm({ category }: { category?: Category }) {
   const router = useRouter();
@@ -50,12 +46,21 @@ export function FinancialCategoryForm({ category }: { category?: Category }) {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="type">Tipo *</Label>
-          <Select id="type" name="type" required defaultValue={category?.type ?? "expense"}>
-            {FINANCIAL_TYPES.map((type) => (
-              <option key={type} value={type}>{TYPE_LABELS[type]}</option>
+          <Label htmlFor="calculationType">Natureza financeira *</Label>
+          <Select
+            id="calculationType"
+            name="calculationType"
+            required
+            defaultValue={category?.calculationType ?? "operational_expense"}
+          >
+            {FINANCIAL_CALCULATION_TYPES.map((type) => (
+              <option key={type} value={type}>{FINANCIAL_CALCULATION_LABELS[type]}</option>
             ))}
           </Select>
+          <p className="text-xs text-slate-400">
+            A natureza define como esta categoria entra nos cálculos do mês.
+          </p>
+          <input type="hidden" name="type" value={category?.type ?? "expense"} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="defaultValue">Valor previsto mensal padrão</Label>

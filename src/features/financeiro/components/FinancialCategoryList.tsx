@@ -7,6 +7,7 @@ import { RestoreButton } from "@/components/ui/RestoreButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/utils";
 import { deleteFinancialCategoryAction, restoreFinancialCategoryAction } from "../actions";
+import { FINANCIAL_CALCULATION_LABELS, type FinancialCalculationType } from "../schema";
 import { Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
 
@@ -15,20 +16,12 @@ interface Category {
   name: string;
   group: string;
   type: string;
+  calculationType: string;
   defaultValue: number | null;
   order: number;
   isActive: boolean;
   isDeleted: boolean;
 }
-
-const TYPE_LABELS: Record<string, string> = {
-  expense: "Despesa",
-  tax: "Imposto",
-  insurance: "Seguro",
-  investment: "Investimento",
-  savings: "Poupança",
-  revenue: "Receita",
-};
 
 function DeleteButton({ id }: { id: string }) {
   const [isPending, startTransition] = useTransition();
@@ -64,7 +57,7 @@ export function FinancialCategoryList({ categories }: { categories: Category[] }
         <TableRow className="bg-slate-50">
           <TableHead>Categoria</TableHead>
           <TableHead>Grupo</TableHead>
-          <TableHead>Tipo</TableHead>
+          <TableHead>Natureza financeira</TableHead>
           <TableHead>Valor padrão</TableHead>
           <TableHead>Ordem</TableHead>
           <TableHead>Estado</TableHead>
@@ -76,7 +69,9 @@ export function FinancialCategoryList({ categories }: { categories: Category[] }
           <TableRow key={category.id} className={category.isDeleted ? "bg-red-50/30 opacity-60" : ""}>
             <TableCell className="font-medium text-slate-900">{category.name}</TableCell>
             <TableCell className="text-slate-500">{category.group}</TableCell>
-            <TableCell className="text-slate-500">{TYPE_LABELS[category.type] ?? category.type}</TableCell>
+            <TableCell className="text-slate-500">
+              {FINANCIAL_CALCULATION_LABELS[category.calculationType as FinancialCalculationType] ?? category.calculationType}
+            </TableCell>
             <TableCell>{category.defaultValue !== null ? formatCurrency(Number(category.defaultValue)) : "-"}</TableCell>
             <TableCell>{category.order}</TableCell>
             <TableCell>

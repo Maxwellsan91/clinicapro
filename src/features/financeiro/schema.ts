@@ -1,14 +1,15 @@
 import { z } from "zod";
 
 export const FINANCIAL_GROUPS = [
+  "Receitas",
   "Pessoal",
   "Despesas Fixas",
   "Despesas Variáveis",
   "Impostos e Contribuições",
   "Seguros",
-  "Poupança e Reservas",
   "Investimento",
-  "Receitas",
+  "Poupança e Reservas",
+  "Transferências Internas",
 ] as const;
 
 export const FINANCIAL_TYPES = [
@@ -20,8 +21,34 @@ export const FINANCIAL_TYPES = [
   "revenue",
 ] as const;
 
+export const FINANCIAL_CALCULATION_TYPES = [
+  "income",
+  "operational_expense",
+  "personnel_cost",
+  "tax",
+  "insurance",
+  "investment",
+  "saving_reserve",
+  "internal_transfer",
+] as const;
+
+export const FINANCIAL_CALCULATION_LABELS: Record<
+  (typeof FINANCIAL_CALCULATION_TYPES)[number],
+  string
+> = {
+  income: "Receita",
+  operational_expense: "Despesa operacional",
+  personnel_cost: "Custo com pessoal",
+  tax: "Imposto / contribuição",
+  insurance: "Seguro",
+  investment: "Investimento",
+  saving_reserve: "Poupança / reserva",
+  internal_transfer: "Transferência interna",
+};
+
 export type FinancialGroup = (typeof FINANCIAL_GROUPS)[number];
 export type FinancialType = (typeof FINANCIAL_TYPES)[number];
+export type FinancialCalculationType = (typeof FINANCIAL_CALCULATION_TYPES)[number];
 
 const optionalMoney = z.preprocess(
   (value) => (value === "" || value === null ? undefined : value),
@@ -32,6 +59,7 @@ export const financialCategorySchema = z.object({
   name: z.string().trim().min(2, "Nome obrigatório"),
   group: z.enum(FINANCIAL_GROUPS),
   type: z.enum(FINANCIAL_TYPES),
+  calculationType: z.enum(FINANCIAL_CALCULATION_TYPES),
   defaultValue: optionalMoney,
   order: z.coerce.number().int().min(0, "A ordem não pode ser negativa").default(0),
   isActive: z.preprocess((value) => value === "on" || value === true, z.boolean()).default(false),
