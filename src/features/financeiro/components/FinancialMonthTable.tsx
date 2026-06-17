@@ -32,6 +32,9 @@ interface FinancialMonthTableProps {
     manualRevenueAdjustment: number;
     savingsAmount: number;
     notes: string;
+    realizedRevenue: number;
+    operationalCosts: number;
+    operationalResult: number;
   };
 }
 
@@ -66,31 +69,13 @@ export function FinancialMonthTable({ year, month, rows, summary }: FinancialMon
     return config
       .map((section) => {
         const items = entries.filter((entry) => sectionKey(entry) === section.key);
-        const totals = items.reduce(
-          (acc, entry) => ({
-            planned: acc.planned + Number(entry.plannedValue || 0),
-            actual: acc.actual + Number(entry.actualValue || 0),
-          }),
-          { planned: 0, actual: 0 }
-        );
-        return { ...section, items, totals };
+        const total = items.reduce((acc, entry) => acc + Number(entry.actualValue || 0), 0);
+        return { ...section, items, total };
       })
       .filter((section) => section.items.length > 0);
   }, [entries]);
 
-  const totals = useMemo(
-    () =>
-      sections.reduce(
-        (acc, section) => ({
-          planned: acc.planned + section.totals.planned,
-          actual: acc.actual + section.totals.actual,
-        }),
-        { planned: 0, actual: 0 }
-      ),
-    [sections]
-  );
-
-  function updateEntry(categoryId: string, field: "plannedValue" | "actualValue" | "notes", value: string) {
+  function updateEntry(categoryId: string, field: "actualValue" | "notes", value: string) {
     setEntries((current) =>
       current.map((entry) =>
         entry.categoryId === categoryId
@@ -107,7 +92,7 @@ export function FinancialMonthTable({ year, month, rows, summary }: FinancialMon
     formData.set("month", String(month));
     startTransition(async () => {
       const result = await action(formData);
-      setMessage(result.success ? "Operação concluída." : result.error ?? "Erro ao executar operação.");
+      setMessage(result.success ? "Estrutura mensal actualizada." : result.error ?? "Erro ao executar operação.");
     });
   }
 
@@ -133,7 +118,7 @@ export function FinancialMonthTable({ year, month, rows, summary }: FinancialMon
 
     startTransition(async () => {
       const result = await saveFinancialMonthAction(formData);
-      setMessage(result.success ? "Plano mensal guardado." : result.error ?? "Erro ao guardar.");
+      setMessage(result.success ? "Resumo mensal guardado." : result.error ?? "Erro ao guardar.");
     });
   }
 
@@ -203,9 +188,7 @@ export function FinancialMonthTable({ year, month, rows, summary }: FinancialMon
           <TableHeader>
             <TableRow className="bg-slate-50">
               <TableHead>Categoria</TableHead>
-              <TableHead className="min-w-36">Previsto</TableHead>
               <TableHead className="min-w-36">Realizado</TableHead>
-              <TableHead>Diferença</TableHead>
               <TableHead className="min-w-64">Observações</TableHead>
             </TableRow>
           </TableHeader>
@@ -213,17 +196,11 @@ export function FinancialMonthTable({ year, month, rows, summary }: FinancialMon
             {sections.map((section) => (
               <Fragment key={section.key}>
                 <TableRow className="bg-slate-100/80 hover:bg-slate-100/80">
-                  <TableCell colSpan={5} className="py-3 text-xs font-bold uppercase tracking-wider text-slate-600">
+                  <TableCell colSpan={3} className="py-3 text-xs font-bold uppercase tracking-wider text-slate-600">
                     {section.label}
                   </TableCell>
                 </TableRow>
                 {section.items.map((entry) => {
-                  const difference = Number(entry.actualValue || 0) - Number(entry.plannedValue || 0);
-                  const isIncome = entry.calculationType === "income";
-                  const isPositive = difference >= 0;
-                  const diffColor = isIncome
-                    ? isPositive ? "text-emerald-600" : "text-red-600"
-                    : isPositive ? "text-red-600" : "text-emerald-600";
                   return (
                     <TableRow key={entry.categoryId}>
                       <TableCell className="font-medium text-slate-900">{entry.categoryName}</TableCell>
@@ -232,21 +209,9 @@ export function FinancialMonthTable({ year, month, rows, summary }: FinancialMon
                           type="number"
                           step="0.01"
                           min="0"
-                          value={entry.plannedValue || ""}
-                          onChange={(event) => updateEntry(entry.categoryId, "plannedValue", event.target.value)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
                           value={entry.actualValue || ""}
                           onChange={(event) => updateEntry(entry.categoryId, "actualValue", event.target.value)}
                         />
-                      </TableCell>
-                      <TableCell className={`font-semibold ${diffColor}`}>
-                        {formatCurrency(difference)}
                       </TableCell>
                       <TableCell>
                         <Textarea
@@ -261,22 +226,33 @@ export function FinancialMonthTable({ year, month, rows, summary }: FinancialMon
                 })}
                 <TableRow className="bg-slate-50 font-semibold">
                   <TableCell>Subtotal {section.label.toLowerCase()}</TableCell>
-                  <TableCell>{formatCurrency(section.totals.planned)}</TableCell>
-                  <TableCell>{formatCurrency(section.totals.actual)}</TableCell>
-                  <TableCell>{formatCurrency(section.totals.actual - section.totals.planned)}</TableCell>
+                  <TableCell>{formatCurrency(section.total)}</TableCell>
                   <TableCell />
                 </TableRow>
               </Fragment>
             ))}
-            <TableRow className="bg-slate-50 font-semibold">
-              <TableCell>Totais lançados</TableCell>
-              <TableCell>{formatCurrency(totals.planned)}</TableCell>
-              <TableCell>{formatCurrency(totals.actual)}</TableCell>
-              <TableCell>{formatCurrency(totals.actual - totals.planned)}</TableCell>
-              <TableCell />
-            </TableRow>
           </TableBody>
         </Table>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="rounded-xl border border-rose-100 bg-rose-50 p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-rose-600">Despesas do mês</p>
+          <p className="mt-2 text-xl font-bold text-rose-900">{formatCurrency(summary.operationalCosts)}</p>
+          <p className="mt-1 text-xs text-rose-700">Pessoal, despesas fixas, variáveis, impostos e seguros.</p>
+        </div>
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-600">Ganhos mensais</p>
+          <p className="mt-2 text-xl font-bold text-emerald-900">{formatCurrency(summary.realizedRevenue)}</p>
+          <p className="mt-1 text-xs text-emerald-700">Receitas realizadas no período.</p>
+        </div>
+        <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Diferença final</p>
+          <p className={`mt-2 text-xl font-bold ${summary.operationalResult >= 0 ? "text-blue-700" : "text-red-700"}`}>
+            {formatCurrency(summary.operationalResult)}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">Ganhos mensais menos despesas do mês.</p>
+        </div>
       </div>
     </div>
   );
