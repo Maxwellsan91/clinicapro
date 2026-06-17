@@ -23,6 +23,9 @@ model Tenant {
   appointments  Appointment[]
   payments      Payment[]
   resources     Resource[]
+  financialCategories FinancialCategory[]
+  financialEntries FinancialEntry[]
+  financialMonthlySummaries FinancialMonthlySummary[]
 }
 
 model Client {
@@ -212,6 +215,67 @@ model Resource {
   appointments AppointmentResource[]
 
   @@index([tenantId])
+}
+
+model FinancialCategory {
+  id           String   @id @default(cuid())
+  tenantId     String
+  name         String
+  group        String
+  type         String
+  defaultValue Decimal? @db.Decimal(10, 2)
+  order        Int      @default(0)
+  isActive     Boolean  @default(true)
+  isDeleted    Boolean  @default(false)
+  deletedAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  entries      FinancialEntry[]
+
+  @@index([tenantId])
+  @@index([group])
+  @@index([type])
+  @@index([order])
+}
+
+model FinancialEntry {
+  id           String   @id @default(cuid())
+  tenantId     String
+  categoryId   String
+  year         Int
+  month        Int
+  plannedValue Decimal? @db.Decimal(10, 2)
+  actualValue  Decimal? @db.Decimal(10, 2)
+  description  String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  category     FinancialCategory @relation(fields: [categoryId], references: [id])
+
+  @@unique([tenantId, categoryId, year, month])
+  @@index([tenantId])
+  @@index([categoryId])
+  @@index([year, month])
+}
+
+model FinancialMonthlySummary {
+  id                      String   @id @default(cuid())
+  tenantId                String
+  year                    Int
+  month                   Int
+  manualRevenueAdjustment Decimal? @db.Decimal(10, 2)
+  savingsAmount           Decimal? @db.Decimal(10, 2)
+  carriedBalance          Decimal? @db.Decimal(10, 2)
+  notes                   String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  tenant                  Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, year, month])
+  @@index([tenantId])
+  @@index([year, month])
 }
 
 model AppointmentResource {

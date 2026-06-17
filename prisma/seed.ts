@@ -422,8 +422,60 @@ async function main() {
   ]);
   console.log("✅  7 pagamentos criados (3 pagos · 3 pendentes · 1 parcial)");
 
+  // ── 9. Categorias Financeiras Internas ────────────────────────────────────
+  const financialCategories = [
+    ["Vencimento Pedro", "Pessoal", "expense"],
+    ["Vencimento Rodrigo", "Pessoal", "expense"],
+    ["Despesas de Deslocações", "Pessoal", "expense"],
+    ["Vencimento Bruna", "Pessoal", "expense"],
+    ["Vencimento Maria", "Pessoal", "expense"],
+    ["Renda", "Despesas Fixas", "expense"],
+    ["Contabilista", "Despesas Fixas", "expense"],
+    ["Água", "Despesas Fixas", "expense"],
+    ["Luz", "Despesas Fixas", "expense"],
+    ["Vodafone", "Despesas Fixas", "expense"],
+    ["Comissões CGD", "Despesas Fixas", "expense"],
+    ["Fisiocreme", "Despesas Variáveis", "expense"],
+    ["Exaclean", "Despesas Variáveis", "expense"],
+    ["Diversos", "Despesas Variáveis", "expense"],
+    ["Crédito Obras", "Investimento", "investment"],
+    ["Zappy", "Despesas Variáveis", "expense"],
+    ["ProSegur", "Despesas Fixas", "expense"],
+    ["Técnicas", "Pessoal", "expense"],
+    ["Recepção", "Pessoal", "expense"],
+    ["Gasóleo", "Despesas Variáveis", "expense"],
+    ["IRC / Pagamentos por Conta", "Impostos e Contribuições", "tax"],
+    ["Seguro x12", "Seguros", "insurance"],
+    ["Seg. Acid. Trabalho x12", "Seguros", "insurance"],
+    ["ERS x12", "Impostos e Contribuições", "tax"],
+    ["TOC online x12", "Despesas Fixas", "expense"],
+    ["Poupança para Formação", "Poupança e Reservas", "savings"],
+    ["Poupança Subsídio Férias + Natal", "Poupança e Reservas", "savings"],
+    ["Investimento / Liquidar Crédito", "Investimento", "investment"],
+    ["Reserva", "Poupança e Reservas", "savings"],
+  ] as const;
+
+  await Promise.all(
+    financialCategories.map(([name, group, type], index) =>
+      prisma.financialCategory.upsert({
+        where: { id: `fin-cat-seed-${String(index + 1).padStart(3, "0")}` },
+        update: { name, group, type, order: index + 1, isActive: true, isDeleted: false, deletedAt: null },
+        create: {
+          id: `fin-cat-seed-${String(index + 1).padStart(3, "0")}`,
+          tenantId: TENANT_ID,
+          name,
+          group,
+          type,
+          order: index + 1,
+          isActive: true,
+        },
+      })
+    )
+  );
+  console.log("✅  29 categorias financeiras internas criadas");
+
   // ── Resumo final ───────────────────────────────────────────────────────────
-  const [nTen, nCol, nSvc, nCli, nApt, nPay, nRes] = await Promise.all([
+  const [nTen, nCol, nSvc, nCli, nApt, nPay, nRes, nFinCat] = await Promise.all([
     prisma.tenant.count(),
     prisma.collaborator.count({ where: { tenantId: TENANT_ID } }),
     prisma.service.count({ where: { tenantId: TENANT_ID } }),
@@ -431,6 +483,7 @@ async function main() {
     prisma.appointment.count({ where: { tenantId: TENANT_ID } }),
     prisma.payment.count({ where: { tenantId: TENANT_ID } }),
     prisma.resource.count({ where: { tenantId: TENANT_ID } }),
+    prisma.financialCategory.count({ where: { tenantId: TENANT_ID } }),
   ]);
 
   console.log(`
@@ -444,10 +497,10 @@ async function main() {
   Clientes      : ${nCli}
   Agendamentos  : ${nApt}
   Pagamentos    : ${nPay}
+  Financeiro    : ${nFinCat} categorias
 ────────────────────────────────`);
 }
 
 main()
   .catch((e) => { console.error("❌  Erro no seed:", e); process.exit(1); })
   .finally(() => prisma.$disconnect());
-

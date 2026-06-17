@@ -10,7 +10,9 @@ export type AuditAction =
   | "ROLE_CHANGE"
   | "MARK_PAID"
   | "MARK_PENDING"
-  | "CANCEL";
+  | "CANCEL"
+  | "GENERATE_MONTH"
+  | "COPY_MONTH";
 
 export type AuditEntity =
   | "Cliente"
@@ -18,7 +20,10 @@ export type AuditEntity =
   | "Servico"
   | "Agendamento"
   | "Pagamento"
-  | "Utilizador";
+  | "Utilizador"
+  | "CategoriaFinanceira"
+  | "LancamentoFinanceiro"
+  | "ResumoFinanceiro";
 
 export interface AuditLogInput {
   userId: string;
@@ -52,4 +57,3 @@ export async function createAuditLog(input: AuditLogInput): Promise<void> {
     console.error("[AuditLog] Falha ao registar auditoria:", err);
   }
 }
-

@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, UserCog, Briefcase, Calendar, Activity,
   CreditCard, Percent, ShieldCheck, ClipboardList, Bell, DoorOpen,
-  Menu, X, LogOut,
+  Menu, X, LogOut, Landmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/features/auth/actions";
@@ -23,6 +23,7 @@ const commonNavItems = [
 const adminNavItems = [
   { href: "/pagamentos",   label: "Pagamentos",    icon: CreditCard },
   { href: "/comissoes",    label: "Comissões",      icon: Percent },
+  { href: "/financeiro",   label: "Financeiro Interno", icon: Landmark },
   { href: "/utilizadores", label: "Utilizadores",  icon: ShieldCheck },
   { href: "/notificacoes", label: "Notificações",  icon: Bell },
   { href: "/auditoria",    label: "Auditoria",     icon: ClipboardList },
@@ -49,7 +50,10 @@ export function MobileNav({ userEmail, role = "user" }: MobileNavProps) {
   const initials = userEmail ? userEmail.slice(0, 2).toUpperCase() : "AD";
 
   // Fechar drawer ao navegar
-  useEffect(() => { setOpen(false); }, [pathname]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setOpen(false), 0);
+    return () => window.clearTimeout(timer);
+  }, [pathname]);
 
   // Bloquear scroll do body quando aberto
   useEffect(() => {
@@ -210,4 +214,3 @@ export function MobileNav({ userEmail, role = "user" }: MobileNavProps) {
     </>
   );
 }
-

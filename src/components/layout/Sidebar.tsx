@@ -15,6 +15,7 @@ import {
   ClipboardList,
   Bell,
   DoorOpen,
+  Landmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoutButton } from "@/features/auth/components/LogoutButton";
@@ -31,6 +32,7 @@ const commonNavItems = [
 const adminNavItems = [
   { href: "/pagamentos",    label: "Pagamentos",     icon: CreditCard },
   { href: "/comissoes",     label: "Comissões",       icon: Percent },
+  { href: "/financeiro",    label: "Financeiro Interno", icon: Landmark },
   { href: "/utilizadores",  label: "Utilizadores",   icon: ShieldCheck },
   { href: "/notificacoes",  label: "Notificações",   icon: Bell },
   { href: "/auditoria",     label: "Auditoria",      icon: ClipboardList },
