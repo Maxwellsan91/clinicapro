@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { X, Plus, Banknote, Gift } from "lucide-react";
+import { X, Plus, Banknote, Gift, CalendarDays, History } from "lucide-react";
 import { toast } from "sonner";
 import { createCommissionPaymentAction } from "../commissionPaymentActions";
 import { cn } from "@/lib/utils";
 
 interface Props {
   colaboradorId: string;
-  saldoDevido: number;
+  saldoPeriodo: number;
+  saldoAnterior: number;
 }
 
 const TYPE_OPTIONS = [
@@ -16,18 +17,39 @@ const TYPE_OPTIONS = [
   { value: "advance", label: "Adiantamento",            icon: Gift,     color: "border-blue-400 bg-blue-50 text-blue-800" },
 ] as const;
 
-const today = () => new Date().toISOString().slice(0, 10);
+const ALLOCATION_OPTIONS = [
+  {
+    value: "current_period",
+    label: "Período atual",
+    description: "Abate a comissão gerada no período filtrado.",
+    icon: CalendarDays,
+  },
+  {
+    value: "previous_balance",
+    label: "Pendência anterior",
+    description: "Abate valores em aberto de períodos anteriores.",
+    icon: History,
+  },
+] as const;
 
-export function RegisterCommissionPaymentModal({ colaboradorId, saldoDevido }: Props) {
+const today = () => new Date().toISOString().slice(0, 10);
+const formatCurrency = (value: number) => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(value);
+
+export function RegisterCommissionPaymentModal({ colaboradorId, saldoPeriodo, saldoAnterior }: Props) {
   const [open, setOpen]         = useState(false);
   const [type, setType]         = useState<"payment" | "advance">("payment");
+  const [allocationType, setAllocationType] = useState<"current_period" | "previous_balance">("current_period");
   const [amount, setAmount]     = useState("");
   const [notes, setNotes]       = useState("");
   const [paidAt, setPaidAt]     = useState(today());
   const [isPending, startTransition] = useTransition();
 
   function reset() {
-    setType("payment"); setAmount(""); setNotes(""); setPaidAt(today());
+    setType("payment");
+    setAllocationType("current_period");
+    setAmount("");
+    setNotes("");
+    setPaidAt(today());
   }
 
   function handleClose() { reset(); setOpen(false); }
@@ -38,6 +60,7 @@ export function RegisterCommissionPaymentModal({ colaboradorId, saldoDevido }: P
     fd.set("colaboradorId", colaboradorId);
     fd.set("amount",        amount);
     fd.set("type",          type);
+    fd.set("allocationType", allocationType);
     fd.set("notes",         notes);
     fd.set("paidAt",        paidAt);
 
@@ -82,15 +105,16 @@ export function RegisterCommissionPaymentModal({ colaboradorId, saldoDevido }: P
 
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
 
-              {/* Saldo devedor info */}
-              {saldoDevido > 0 && (
-                <div className="rounded-xl bg-purple-50 border border-purple-200 px-4 py-3 text-sm text-purple-800">
-                  <span className="font-medium">Saldo em dívida (total):</span>{" "}
-                  <span className="font-bold">
-                    {new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(saldoDevido)}
-                  </span>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-xl bg-orange-50 border border-orange-200 px-3 py-2.5">
+                  <p className="text-[11px] font-semibold text-orange-700 uppercase tracking-wider">Saldo do período</p>
+                  <p className="text-sm font-bold text-orange-900">{formatCurrency(Math.max(saldoPeriodo, 0))}</p>
                 </div>
-              )}
+                <div className="rounded-xl bg-red-50 border border-red-200 px-3 py-2.5">
+                  <p className="text-[11px] font-semibold text-red-700 uppercase tracking-wider">Pendência anterior</p>
+                  <p className="text-sm font-bold text-red-900">{formatCurrency(Math.max(saldoAnterior, 0))}</p>
+                </div>
+              </div>
 
               {/* Tipo */}
               <div>
@@ -110,6 +134,42 @@ export function RegisterCommissionPaymentModal({ colaboradorId, saldoDevido }: P
                       >
                         <Icon className="w-5 h-5" />
                         {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                  Referente a
+                </label>
+                <div className="space-y-2">
+                  {ALLOCATION_OPTIONS.map((opt) => {
+                    const Icon = opt.icon;
+                    const selected = allocationType === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setAllocationType(opt.value)}
+                        className={cn(
+                          "w-full flex items-start gap-3 rounded-xl border p-3 text-left transition-all",
+                          selected
+                            ? "border-purple-300 bg-purple-50 text-purple-900"
+                            : "border-gray-200 bg-white text-gray-700 hover:border-gray-300",
+                        )}
+                      >
+                        <span className={cn(
+                          "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                          selected ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-500",
+                        )}>
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span>
+                          <span className="block text-sm font-semibold">{opt.label}</span>
+                          <span className="block text-xs text-gray-500">{opt.description}</span>
+                        </span>
                       </button>
                     );
                   })}
@@ -183,4 +243,3 @@ export function RegisterCommissionPaymentModal({ colaboradorId, saldoDevido }: P
     </>
   );
 }
-

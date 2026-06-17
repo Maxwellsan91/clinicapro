@@ -45,7 +45,7 @@ export default async function EditarAgendamentoPage({ params }: Props) {
             <AgendamentoForm
               agendamento={agendamento}
               clientes={clientes}
-              colaboradores={colaboradores}
+              colaboradores={colaboradores.map((c) => ({ id: c.id, name: c.name, role: c.role }))}
               servicos={servicos}
               recursos={recursos}
             />
@@ -55,6 +55,5 @@ export default async function EditarAgendamentoPage({ params }: Props) {
     </div>
   );
 }
-
 
 

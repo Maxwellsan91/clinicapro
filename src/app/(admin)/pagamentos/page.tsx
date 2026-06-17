@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PagamentoList } from "@/features/pagamentos/components/PagamentoList";
 import { PagamentoFilters } from "@/features/pagamentos/components/PagamentoFilters";
+import { syncMissingPaymentsForFinalizedAppointments } from "@/features/agendamentos/repository";
 import {
   findAllPagamentos,
   getPagamentosStats,
@@ -30,6 +31,8 @@ export default async function PagamentosPage({ searchParams }: PageProps) {
   const { status, deleted } = await searchParams;
   const showDeleted = deleted === "1";
 
+  await syncMissingPaymentsForFinalizedAppointments(TENANT_ID);
+
   const [rawAll, stats] = await Promise.all([
     findAllPagamentos(TENANT_ID, showDeleted),
     getPagamentosStats(TENANT_ID),
@@ -45,6 +48,7 @@ export default async function PagamentosPage({ searchParams }: PageProps) {
   const totalRecebido = Number(stats.paid._sum.amount ?? 0);
   const totalPendente = Number(stats.pending._sum.amount ?? 0);
   const totalParcial = Number(stats.partial._sum.amount ?? 0);
+  const totalCancelado = Number(stats.cancelled._sum.amount ?? 0);
   const totalGeral = Number(stats.total._sum.amount ?? 0);
 
   const pctRecebido = totalGeral > 0 ? Math.round((totalRecebido / totalGeral) * 100) : 0;
@@ -80,7 +84,7 @@ export default async function PagamentosPage({ searchParams }: PageProps) {
       valueColor: "text-yellow-700",
     },
     {
-      label: "Parcial",
+      label: "Pago parcial",
       value: formatCurrency(totalParcial),
       sub: `${stats.partial._count} pagamentos`,
       icon: AlertCircle,
@@ -88,6 +92,16 @@ export default async function PagamentosPage({ searchParams }: PageProps) {
       iconColor: "text-blue-600",
       border: "border-blue-200",
       valueColor: "text-blue-700",
+    },
+    {
+      label: "Cancelado",
+      value: formatCurrency(totalCancelado),
+      sub: `${stats.cancelled._count} pagamentos`,
+      icon: Trash2,
+      iconBg: "bg-red-100",
+      iconColor: "text-red-600",
+      border: "border-red-200",
+      valueColor: "text-red-700",
     },
   ];
 
@@ -98,7 +112,7 @@ export default async function PagamentosPage({ searchParams }: PageProps) {
       <div className="p-6 space-y-6">
 
         {/* ── Cards de resumo ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {summaryCards.map((c) => {
             const Icon = c.icon;
             return (
@@ -140,6 +154,9 @@ export default async function PagamentosPage({ searchParams }: PageProps) {
             <TrendingUp className="w-4 h-4 text-gray-400" />
             <span className="text-sm text-gray-500">
               A mostrar <span className="font-semibold text-gray-700">{pagamentos.length}</span> pagamento{pagamentos.length !== 1 ? "s" : ""}
+            </span>
+            <span className="hidden sm:inline text-xs text-gray-400">
+              Ordenado pela última edição
             </span>
             <Link href={showDeleted ? "/pagamentos" : "/pagamentos?deleted=1"}
               className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${showDeleted ? "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200" : "bg-red-50 text-red-600 border-red-200 hover:bg-red-100"}`}>

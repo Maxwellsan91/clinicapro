@@ -47,6 +47,8 @@ export async function createPagamentoAction(formData: FormData) {
       metadata: { amount: result.data.amount, status: result.data.status, clientId: result.data.clientId },
     });
     revalidatePath("/pagamentos");
+    revalidatePath("/financeiro");
+    revalidatePath("/financeiro/resumo-anual");
   } catch {
     return { success: false, error: { _global: ["Erro ao criar pagamento"] } };
   }
@@ -88,6 +90,8 @@ export async function updatePagamentoAction(id: string, formData: FormData) {
     });
     revalidatePath("/pagamentos");
     revalidatePath(`/pagamentos/${id}`);
+    revalidatePath("/financeiro");
+    revalidatePath("/financeiro/resumo-anual");
   } catch {
     return { success: false, error: { _global: ["Erro ao actualizar pagamento"] } };
   }
@@ -109,6 +113,8 @@ export async function markAsPaidAction(id: string) {
       metadata: { newStatus: "paid" },
     });
     revalidatePath("/pagamentos");
+    revalidatePath("/financeiro");
+    revalidatePath("/financeiro/resumo-anual");
     return { success: true };
   } catch {
     return { success: false, error: "Erro ao marcar como pago" };
@@ -129,6 +135,8 @@ export async function markAsPendingAction(id: string) {
       metadata: { newStatus: "pending" },
     });
     revalidatePath("/pagamentos");
+    revalidatePath("/financeiro");
+    revalidatePath("/financeiro/resumo-anual");
     return { success: true };
   } catch {
     return { success: false, error: "Erro ao marcar como pendente" };
@@ -148,6 +156,8 @@ export async function deletePagamentoAction(id: string) {
       entityId: id,
     });
     revalidatePath("/pagamentos");
+    revalidatePath("/financeiro");
+    revalidatePath("/financeiro/resumo-anual");
     return { success: true };
   } catch {
     return { success: false, error: "Erro ao eliminar pagamento" };
@@ -168,9 +178,10 @@ export async function restorePagamentoAction(id: string) {
       metadata: { restored: true },
     });
     revalidatePath("/pagamentos");
+    revalidatePath("/financeiro");
+    revalidatePath("/financeiro/resumo-anual");
     return { success: true };
   } catch {
     return { success: false, error: "Erro ao restaurar pagamento" };
   }
 }
-

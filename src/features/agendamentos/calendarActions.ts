@@ -5,6 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { TENANT_ID } from "@/constants";
 import { getUser } from "@/features/auth/actions";
 import { createAuditLog } from "@/lib/audit";
+import {
+  assertValidAppointmentInterval,
+  checkCollaboratorConflict,
+  ensurePaymentForFinalizedAppointment,
+  checkResourceConflicts,
+} from "./repository";
 
 export interface CalendarEvent {
   id: string;
@@ -99,18 +105,22 @@ export async function moveEventAction(
     include: { resources: { select: { resourceId: true } } },
   });
 
+  const startDateTime = new Date(newStart);
+  const endDateTime = new Date(newEnd);
+
+  try {
+    assertValidAppointmentInterval(startDateTime, endDateTime);
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Horário inválido." };
+  }
+
   // 1. Conflito de colaborador
-  const collabOverlap = await prisma.appointment.findFirst({
-    where: {
-      tenantId: TENANT_ID,
-      isDeleted: false,
-      id: { not: id },
-      collaboratorId: apt.collaboratorId,
-      status: { notIn: ["cancelled", "no_show"] },
-      startDateTime: { lt: new Date(newEnd) },
-      endDateTime:   { gt: new Date(newStart) },
-    },
-    include: { client: { select: { name: true } } },
+  const collabOverlap = await checkCollaboratorConflict({
+    tenantId: TENANT_ID,
+    collaboratorId: apt.collaboratorId,
+    startDateTime,
+    endDateTime,
+    excludeAppointmentId: id,
   });
   if (collabOverlap) {
     return { success: false, error: `O colaborador já tem um agendamento com ${collabOverlap.client.name} neste horário.` };
@@ -119,28 +129,28 @@ export async function moveEventAction(
   // 2. Conflito de recursos
   const resourceIds = apt.resources.map((r) => r.resourceId);
   if (resourceIds.length > 0) {
-    const resOverlap = await prisma.appointmentResource.findFirst({
-      where: {
-        resourceId: { in: resourceIds },
-        appointment: {
-          tenantId:  TENANT_ID,
-          isDeleted: false,
-          id: { not: id },
-          status: { notIn: ["cancelled", "no_show"] },
-          startDateTime: { lt: new Date(newEnd) },
-          endDateTime:   { gt: new Date(newStart) },
-        },
-      },
-      include: { resource: { select: { name: true } } },
+    const resourceConflicts = await checkResourceConflicts({
+      tenantId: TENANT_ID,
+      resourceIds,
+      startDateTime,
+      endDateTime,
+      excludeAppointmentId: id,
     });
-    if (resOverlap) {
-      return { success: false, error: `Conflito de horário: ${resOverlap.resource.name} já está reservado neste intervalo.` };
+    if (resourceConflicts.length > 0) {
+      const firstConflict = resourceConflicts[0];
+      const firstAppointment = firstConflict.appointments[0];
+      return {
+        success: false,
+        error: firstAppointment
+          ? `${firstConflict.resourceName} já está reservada entre ${firstAppointment.timeRange}.`
+          : `${firstConflict.resourceName} já está reservada neste horário.`,
+      };
     }
   }
 
   await prisma.appointment.update({
     where: { id },
-    data:  { startDateTime: new Date(newStart), endDateTime: new Date(newEnd) },
+    data:  { startDateTime, endDateTime },
   });
 
   const user = await getUser();
@@ -166,6 +176,7 @@ export async function updateEventStatusAction(
   });
 
   await prisma.appointment.update({ where: { id }, data: { status } });
+  await ensurePaymentForFinalizedAppointment(TENANT_ID, id);
 
   const user = await getUser();
   await createAuditLog({
@@ -178,6 +189,10 @@ export async function updateEventStatusAction(
   });
 
   revalidatePath("/agendamentos");
+  revalidatePath("/pagamentos");
+  revalidatePath("/financeiro");
+  revalidatePath("/financeiro/resumo-anual");
+  revalidatePath("/comissoes");
   return { success: true };
 }
 
@@ -210,6 +225,10 @@ export interface ResourceAvailability {
   occupiedIds: string[];
   /** Mapa resourceId → nome do cliente que o reservou */
   occupiedBy: Record<string, string>;
+  /** Mapa resourceId → intervalo ocupado formatado */
+  occupiedTimeRange: Record<string, string>;
+  /** Mapa resourceId → colaborador/profissional associado */
+  occupiedCollaborator: Record<string, string>;
 }
 
 /**
@@ -221,36 +240,49 @@ export async function checkResourcesAvailabilityAction(
   end: string,
   excludeAppointmentId?: string,
 ): Promise<ResourceAvailability> {
-  if (!start || !end) return { occupiedIds: [], occupiedBy: {} };
+  if (!start || !end) {
+    return { occupiedIds: [], occupiedBy: {}, occupiedTimeRange: {}, occupiedCollaborator: {} };
+  }
 
-  const conflicts = await prisma.appointmentResource.findMany({
-    where: {
-      appointment: {
-        tenantId:  TENANT_ID,
-        isDeleted: false,
-        status:    { notIn: ["cancelled", "no_show"] },
-        ...(excludeAppointmentId ? { id: { not: excludeAppointmentId } } : {}),
-        startDateTime: { lt: new Date(end) },
-        endDateTime:   { gt: new Date(start) },
-      },
-    },
-    select: {
-      resourceId:  true,
-      appointment: { select: { client: { select: { name: true } } } },
-    },
+  const startDateTime = new Date(start);
+  const endDateTime = new Date(end);
+  try {
+    assertValidAppointmentInterval(startDateTime, endDateTime);
+  } catch {
+    return { occupiedIds: [], occupiedBy: {}, occupiedTimeRange: {}, occupiedCollaborator: {} };
+  }
+
+  const activeResources = await prisma.resource.findMany({
+    where: { tenantId: TENANT_ID, isDeleted: false, isActive: true },
+    select: { id: true },
+  });
+
+  const conflicts = await checkResourceConflicts({
+    tenantId: TENANT_ID,
+    resourceIds: activeResources.map((resource) => resource.id),
+    startDateTime,
+    endDateTime,
+    excludeAppointmentId,
   });
 
   const occupiedIds: string[] = [];
   const occupiedBy: Record<string, string> = {};
+  const occupiedTimeRange: Record<string, string> = {};
+  const occupiedCollaborator: Record<string, string> = {};
 
-  for (const c of conflicts) {
-    if (!occupiedIds.includes(c.resourceId)) {
-      occupiedIds.push(c.resourceId);
+  for (const conflict of conflicts) {
+    if (!occupiedIds.includes(conflict.resourceId)) {
+      occupiedIds.push(conflict.resourceId);
     }
-    occupiedBy[c.resourceId] = c.appointment.client.name;
+    const firstAppointment = conflict.appointments[0];
+    if (firstAppointment) {
+      occupiedBy[conflict.resourceId] = firstAppointment.clientName;
+      occupiedTimeRange[conflict.resourceId] = firstAppointment.timeRange;
+      occupiedCollaborator[conflict.resourceId] = firstAppointment.collaboratorName;
+    }
   }
 
-  return { occupiedIds, occupiedBy };
+  return { occupiedIds, occupiedBy, occupiedTimeRange, occupiedCollaborator };
 }
 
 export interface CheckOverlapResult {
@@ -264,17 +296,12 @@ export async function checkOverlapAction(
   end: string,
   excludeId?: string
 ): Promise<CheckOverlapResult> {
-  const overlap = await prisma.appointment.findFirst({
-    where: {
-      tenantId: TENANT_ID,
-      isDeleted: false,
-      collaboratorId,
-      status: { notIn: ["cancelled", "no_show"] },
-      ...(excludeId ? { id: { not: excludeId } } : {}),
-      startDateTime: { lt: new Date(end) },
-      endDateTime:   { gt: new Date(start) },
-    },
-    include: { client: { select: { name: true } } },
+  const overlap = await checkCollaboratorConflict({
+    tenantId: TENANT_ID,
+    collaboratorId,
+    startDateTime: new Date(start),
+    endDateTime: new Date(end),
+    excludeAppointmentId: excludeId,
   });
 
   if (overlap) {

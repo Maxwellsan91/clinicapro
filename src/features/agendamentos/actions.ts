@@ -18,10 +18,25 @@ async function validateConflicts(
   resourceIds: string[],
   excludeId?: string,
 ): Promise<{ success: false; error: Record<string, string[]> } | null> {
+  try {
+    repo.assertValidAppointmentInterval(startDateTime, endDateTime);
+  } catch (error) {
+    return {
+      success: false,
+      error: {
+        _global: [error instanceof Error ? error.message : "Horário inválido."],
+      },
+    };
+  }
+
   // 1. Conflito de colaborador
-  const collabConflict = await repo.checkCollaboratorConflict(
-    TENANT_ID, collaboratorId, startDateTime, endDateTime, excludeId,
-  );
+  const collabConflict = await repo.checkCollaboratorConflict({
+    tenantId: TENANT_ID,
+    collaboratorId,
+    startDateTime,
+    endDateTime,
+    excludeAppointmentId: excludeId,
+  });
   if (collabConflict) {
     return {
       success: false,
@@ -35,16 +50,24 @@ async function validateConflicts(
 
   // 2. Conflito de recursos
   if (resourceIds.length > 0) {
-    const resourceConflicts = await repo.checkResourcesConflict(
-      TENANT_ID, resourceIds, startDateTime, endDateTime, excludeId,
-    );
+    const resourceConflicts = await repo.checkResourceConflicts({
+      tenantId: TENANT_ID,
+      resourceIds,
+      startDateTime,
+      endDateTime,
+      excludeAppointmentId: excludeId,
+    });
     if (resourceConflicts.length > 0) {
-      const names = [...new Set(resourceConflicts.map((c) => c.resource.name))].join(", ");
+      const firstConflict = resourceConflicts[0];
+      const firstAppointment = firstConflict.appointments[0];
+      const specificMessage = firstAppointment
+        ? `${firstConflict.resourceName} já está reservada entre ${firstAppointment.timeRange}.`
+        : `${firstConflict.resourceName} já está reservada neste horário.`;
       return {
         success: false,
         error: {
           _global: [
-            `Conflito de horário: ${names} já ${resourceConflicts.length === 1 ? "está reservado" : "estão reservados"} neste intervalo.`,
+            `Não foi possível guardar o agendamento. ${specificMessage}`,
           ],
         },
       };
@@ -52,6 +75,15 @@ async function validateConflicts(
   }
 
   return null; // sem conflitos
+}
+
+function revalidateOperationalViews(appointmentId?: string) {
+  revalidatePath("/agendamentos");
+  if (appointmentId) revalidatePath(`/agendamentos/${appointmentId}`);
+  revalidatePath("/pagamentos");
+  revalidatePath("/financeiro");
+  revalidatePath("/financeiro/resumo-anual");
+  revalidatePath("/comissoes");
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -84,6 +116,7 @@ export async function createAgendamentoAction(formData: FormData) {
 
   try {
     const agendamento = await repo.createAgendamento(TENANT_ID, result.data);
+    await repo.ensurePaymentForFinalizedAppointment(TENANT_ID, agendamento.id);
     const user = await getUser();
     await createAuditLog({
       userId: user?.id ?? "unknown",
@@ -113,7 +146,7 @@ export async function createAgendamentoAction(formData: FormData) {
         });
       }
     }).catch(() => {});
-    revalidatePath("/agendamentos");
+    revalidateOperationalViews(agendamento.id);
   } catch {
     return { success: false, error: { _global: ["Erro ao criar agendamento"] } };
   }
@@ -152,6 +185,7 @@ export async function updateAgendamentoAction(id: string, formData: FormData) {
 
   try {
     await repo.updateAgendamento(id, TENANT_ID, result.data);
+    await repo.ensurePaymentForFinalizedAppointment(TENANT_ID, id);
     const user = await getUser();
     await createAuditLog({
       userId: user?.id ?? "unknown",
@@ -161,8 +195,7 @@ export async function updateAgendamentoAction(id: string, formData: FormData) {
       entityId: id,
       metadata: { status: result.data.status, resourceIds: result.data.resourceIds },
     });
-    revalidatePath("/agendamentos");
-    revalidatePath(`/agendamentos/${id}`);
+    revalidateOperationalViews(id);
   } catch {
     return { success: false, error: { _global: ["Erro ao atualizar agendamento"] } };
   }
@@ -173,6 +206,7 @@ export async function updateAgendamentoAction(id: string, formData: FormData) {
 export async function cancelAgendamentoAction(id: string) {
   try {
     await repo.cancelAgendamento(id, TENANT_ID);
+    await repo.ensurePaymentForFinalizedAppointment(TENANT_ID, id);
     const user = await getUser();
     await createAuditLog({
       userId: user?.id ?? "unknown",
@@ -200,7 +234,7 @@ export async function cancelAgendamentoAction(id: string) {
         startDateTime: full.startDateTime,
       }).catch(() => {});
     }
-    revalidatePath("/agendamentos");
+    revalidateOperationalViews(id);
     return { success: true };
   } catch {
     return { success: false, error: "Erro ao cancelar agendamento" };

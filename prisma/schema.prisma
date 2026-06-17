@@ -75,6 +75,7 @@ model CommissionPayment {
   collaboratorId String
   amount         Decimal      @db.Decimal(10, 2)
   type           String       @default("payment") // payment | advance
+  allocationType String       @default("current_period") // current_period | previous_balance
   notes          String?
   paidAt         DateTime     @default(now())
   createdAt      DateTime     @default(now())
@@ -83,6 +84,7 @@ model CommissionPayment {
 
   @@index([tenantId])
   @@index([collaboratorId])
+  @@index([allocationType])
   @@index([paidAt])
 }
 

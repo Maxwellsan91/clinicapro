@@ -131,6 +131,9 @@ export function PagamentoList({ pagamentos, showDeleted = false }: PagamentoList
               Estado
             </TableHead>
             <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Última alteração
+            </TableHead>
+            <TableHead className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
               Fatura
             </TableHead>
             <TableHead className="text-right pr-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -214,6 +217,10 @@ export function PagamentoList({ pagamentos, showDeleted = false }: PagamentoList
                 {/* Estado */}
                 <TableCell className="py-3">
                   <PaymentStatusBadge status={p.status} />
+                </TableCell>
+
+                <TableCell className="py-3">
+                  <span className="text-sm text-gray-500">{formatDate(p.updatedAt)}</span>
                 </TableCell>
 
                 {/* Fatura */}

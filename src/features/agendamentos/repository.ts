@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { CreateAgendamentoInput, UpdateAgendamentoInput } from "./schema";
+import { formatTimeRange, hasTimeOverlap } from "./timeOverlap";
 
 const ACTIVE = { isDeleted: false } as const;
 
@@ -9,7 +10,7 @@ const includeRelations = {
   service:      { select: { id: true, name: true, duration: true, price: true } },
   resources: {
     include: {
-      resource: { select: { id: true, name: true, type: true } },
+      resource: { select: { id: true, name: true, type: true, capacity: true } },
     },
   },
 } as const;
@@ -44,21 +45,62 @@ export async function findAgendamentoById(id: string, tenantId: string) {
 
 // ── Conflict helpers ──────────────────────────────────────────────────────────
 
+export function assertValidAppointmentInterval(startDateTime: Date, endDateTime: Date) {
+  if (
+    Number.isNaN(startDateTime.getTime()) ||
+    Number.isNaN(endDateTime.getTime()) ||
+    startDateTime >= endDateTime
+  ) {
+    throw new Error("O horário de término deve ser posterior ao horário de início.");
+  }
+}
+
+export interface ConflictCheckInput {
+  tenantId: string;
+  startDateTime: Date;
+  endDateTime: Date;
+  excludeAppointmentId?: string;
+}
+
+export interface ResourceConflictCheckInput extends ConflictCheckInput {
+  resourceIds: string[];
+}
+
+export interface CollaboratorConflictCheckInput extends ConflictCheckInput {
+  collaboratorId: string;
+}
+
+export interface ResourceConflict {
+  resourceId: string;
+  resourceName: string;
+  capacity: number;
+  overlappingCount: number;
+  appointments: {
+    id: string;
+    clientName: string;
+    collaboratorName: string;
+    startDateTime: Date;
+    endDateTime: Date;
+    timeRange: string;
+  }[];
+}
+
 /** Verifica sobreposição de horário do colaborador */
-export async function checkCollaboratorConflict(
-  tenantId: string,
-  collaboratorId: string,
-  startDateTime: Date,
-  endDateTime: Date,
-  excludeId?: string,
-) {
+export async function checkCollaboratorConflict({
+  tenantId,
+  collaboratorId,
+  startDateTime,
+  endDateTime,
+  excludeAppointmentId,
+}: CollaboratorConflictCheckInput) {
+  assertValidAppointmentInterval(startDateTime, endDateTime);
   return prisma.appointment.findFirst({
     where: {
       tenantId,
       isDeleted: false,
       collaboratorId,
       status: { notIn: ["cancelled", "no_show"] },
-      ...(excludeId ? { id: { not: excludeId } } : {}),
+      ...(excludeAppointmentId ? { id: { not: excludeAppointmentId } } : {}),
       startDateTime: { lt: endDateTime },
       endDateTime:   { gt: startDateTime },
     },
@@ -67,39 +109,147 @@ export async function checkCollaboratorConflict(
 }
 
 /** Verifica sobreposição de recursos */
-export async function checkResourcesConflict(
-  tenantId: string,
-  resourceIds: string[],
-  startDateTime: Date,
-  endDateTime: Date,
-  excludeId?: string,
-) {
+export async function checkResourceConflicts({
+  tenantId,
+  resourceIds,
+  startDateTime,
+  endDateTime,
+  excludeAppointmentId,
+}: ResourceConflictCheckInput): Promise<ResourceConflict[]> {
   if (resourceIds.length === 0) return [];
+  assertValidAppointmentInterval(startDateTime, endDateTime);
 
-  return prisma.appointmentResource.findMany({
+  const uniqueResourceIds = [...new Set(resourceIds)];
+  const resourceRows = await prisma.resource.findMany({
+    where: { tenantId, id: { in: uniqueResourceIds }, isDeleted: false, isActive: true },
+    select: { id: true, name: true, capacity: true },
+  });
+  const resourcesById = new Map(resourceRows.map((resource) => [resource.id, resource]));
+
+  const overlappingReservations = await prisma.appointmentResource.findMany({
     where: {
-      resourceId: { in: resourceIds },
+      resourceId: { in: uniqueResourceIds },
       appointment: {
         tenantId,
         isDeleted: false,
         status: { notIn: ["cancelled", "no_show"] },
-        ...(excludeId ? { id: { not: excludeId } } : {}),
+        ...(excludeAppointmentId ? { id: { not: excludeAppointmentId } } : {}),
         startDateTime: { lt: endDateTime },
         endDateTime:   { gt: startDateTime },
       },
     },
     include: {
-      resource:    { select: { id: true, name: true } },
+      resource:    { select: { id: true, name: true, capacity: true } },
       appointment: {
         select: {
           id: true,
           startDateTime: true,
           endDateTime: true,
           client: { select: { name: true } },
+          collaborator: { select: { name: true } },
         },
       },
     },
   });
+
+  const grouped = new Map<string, ResourceConflict>();
+
+  for (const reservation of overlappingReservations) {
+    if (!hasTimeOverlap(
+      reservation.appointment.startDateTime,
+      reservation.appointment.endDateTime,
+      startDateTime,
+      endDateTime
+    )) {
+      continue;
+    }
+
+    const resource = resourcesById.get(reservation.resourceId) ?? reservation.resource;
+    const current = grouped.get(reservation.resourceId) ?? {
+      resourceId: reservation.resourceId,
+      resourceName: resource.name,
+      capacity: resource.capacity,
+      overlappingCount: 0,
+      appointments: [],
+    };
+
+    current.overlappingCount += 1;
+    current.appointments.push({
+      id: reservation.appointment.id,
+      clientName: reservation.appointment.client.name,
+      collaboratorName: reservation.appointment.collaborator.name,
+      startDateTime: reservation.appointment.startDateTime,
+      endDateTime: reservation.appointment.endDateTime,
+      timeRange: formatTimeRange(
+        reservation.appointment.startDateTime,
+        reservation.appointment.endDateTime
+      ),
+    });
+    grouped.set(reservation.resourceId, current);
+  }
+
+  return [...grouped.values()].filter((conflict) =>
+    conflict.capacity <= 1 || conflict.overlappingCount >= conflict.capacity
+  );
+}
+
+export async function ensurePaymentForFinalizedAppointment(
+  tenantId: string,
+  appointmentId: string
+) {
+  const appointment = await prisma.appointment.findFirst({
+    where: { id: appointmentId, tenantId, isDeleted: false },
+    include: {
+      service: { select: { price: true, name: true } },
+      payments: {
+        where: { isDeleted: false },
+        orderBy: { updatedAt: "desc" },
+      },
+    },
+  });
+
+  if (!appointment) return null;
+  if (!["completed", "cancelled"].includes(appointment.status)) return null;
+  if (appointment.payments.length > 0) return appointment.payments[0];
+
+  const status = appointment.status === "cancelled" ? "cancelled" : "pending";
+
+  return prisma.payment.create({
+    data: {
+      tenantId,
+      clientId: appointment.clientId,
+      appointmentId: appointment.id,
+      amount: appointment.service.price,
+      status,
+      dueDate: appointment.startDateTime,
+      paidAt: null,
+      invoiceStatus: "not_issued",
+      notes:
+        status === "cancelled"
+          ? "Pagamento gerado automaticamente a partir de agendamento cancelado."
+          : "Pagamento pendente gerado automaticamente ao concluir o atendimento.",
+    },
+  });
+}
+
+export async function syncMissingPaymentsForFinalizedAppointments(tenantId: string) {
+  const appointments = await prisma.appointment.findMany({
+    where: {
+      tenantId,
+      isDeleted: false,
+      status: { in: ["completed", "cancelled"] },
+      payments: { none: { isDeleted: false } },
+    },
+    select: { id: true },
+  });
+
+  const synced = await Promise.all(
+    appointments.map((appointment) =>
+      ensurePaymentForFinalizedAppointment(tenantId, appointment.id)
+    )
+  );
+
+  return synced.filter(Boolean).length;
 }
 
 // ── CRUD ─────────────────────────────────────────────────────────────────────

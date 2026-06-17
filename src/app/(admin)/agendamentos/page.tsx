@@ -90,11 +90,10 @@ export default async function AgendamentosPage({ searchParams }: PageProps) {
             clientes={clientes.map((c) => ({ id: c.id, name: c.name }))}
             colaboradores={colaboradores.map((c) => ({ id: c.id, name: c.name, role: c.role, email: c.email }))}
             servicos={servicos.map((s) => ({ id: s.id, name: s.name, duration: s.duration }))}
-            recursos={recursos.map((r) => ({ id: r.id, name: r.name, type: r.type }))}
+            recursos={recursos.map((r) => ({ id: r.id, name: r.name, type: r.type, capacity: r.capacity }))}
           />
         </Suspense>
       </div>
     </div>
   );
 }
-

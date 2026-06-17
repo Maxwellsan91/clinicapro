@@ -29,7 +29,7 @@ export default async function NovoAgendamentoPage() {
           <CardContent>
             <AgendamentoForm
               clientes={clientes}
-              colaboradores={colaboradores}
+              colaboradores={colaboradores.map((c) => ({ id: c.id, name: c.name, role: c.role }))}
               servicos={servicosAtivos}
               recursos={recursos}
             />
@@ -39,6 +39,5 @@ export default async function NovoAgendamentoPage() {
     </div>
   );
 }
-
 
 

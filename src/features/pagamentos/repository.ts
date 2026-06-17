@@ -19,7 +19,7 @@ export async function findAllPagamentos(tenantId: string, withDeleted = false) {
   return prisma.payment.findMany({
     where: { tenantId, ...(withDeleted ? {} : ACTIVE) },
     include: includeRelations,
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
   });
 }
 
@@ -37,8 +37,14 @@ export async function findPagamentosByClient(
   return prisma.payment.findMany({
     where: { tenantId, clientId, ...ACTIVE },
     include: includeRelations,
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
   });
+}
+
+function resolvePaidAt(status: string | undefined, paidAt: string | undefined) {
+  if (paidAt) return new Date(paidAt);
+  if (status === "paid") return new Date();
+  return null;
 }
 
 export async function createPagamento(
@@ -53,7 +59,7 @@ export async function createPagamento(
       amount: data.amount,
       paymentMethod: data.paymentMethod || null,
       status: data.status ?? "pending",
-      paidAt: data.paidAt ? new Date(data.paidAt) : null,
+      paidAt: resolvePaidAt(data.status, data.paidAt),
       dueDate: data.dueDate ? new Date(data.dueDate) : null,
       notes: data.notes || null,
       invoiceStatus: data.invoiceStatus ?? "not_issued",
@@ -69,7 +75,15 @@ export async function updatePagamento(
   tenantId: string,
   data: UpdatePagamentoInput
 ) {
-  await prisma.payment.findFirstOrThrow({ where: { id, tenantId, ...ACTIVE } });
+  const current = await prisma.payment.findFirstOrThrow({ where: { id, tenantId, ...ACTIVE } });
+  const nextStatus = data.status ?? current.status;
+  const nextPaidAt =
+    data.paidAt !== undefined
+      ? (data.paidAt ? new Date(data.paidAt) : nextStatus === "paid" ? new Date() : null)
+      : nextStatus === "paid" && !current.paidAt
+        ? new Date()
+        : undefined;
+
   return prisma.payment.update({
     where: { id },
     data: {
@@ -78,7 +92,7 @@ export async function updatePagamento(
       ...(data.amount !== undefined && { amount: data.amount }),
       paymentMethod: data.paymentMethod !== undefined ? data.paymentMethod || null : undefined,
       ...(data.status && { status: data.status }),
-      paidAt: data.paidAt !== undefined ? (data.paidAt ? new Date(data.paidAt) : null) : undefined,
+      paidAt: nextPaidAt,
       dueDate: data.dueDate !== undefined ? (data.dueDate ? new Date(data.dueDate) : null) : undefined,
       notes: data.notes !== undefined ? data.notes || null : undefined,
       ...(data.invoiceStatus && { invoiceStatus: data.invoiceStatus }),
@@ -118,11 +132,12 @@ export async function restorePagamento(id: string, tenantId: string) {
 }
 
 export async function getPagamentosStats(tenantId: string) {
-  const [total, paid, pending, partial] = await Promise.all([
+  const [total, paid, pending, partial, cancelled] = await Promise.all([
     prisma.payment.aggregate({ where: { tenantId, ...ACTIVE }, _sum: { amount: true }, _count: true }),
     prisma.payment.aggregate({ where: { tenantId, status: "paid", ...ACTIVE }, _sum: { amount: true }, _count: true }),
     prisma.payment.aggregate({ where: { tenantId, status: "pending", ...ACTIVE }, _sum: { amount: true }, _count: true }),
     prisma.payment.aggregate({ where: { tenantId, status: "partial", ...ACTIVE }, _sum: { amount: true }, _count: true }),
+    prisma.payment.aggregate({ where: { tenantId, status: "cancelled", ...ACTIVE }, _sum: { amount: true }, _count: true }),
   ]);
-  return { total, paid, pending, partial };
+  return { total, paid, pending, partial, cancelled };
 }

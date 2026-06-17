@@ -23,13 +23,13 @@ import {
 import { COLLABORATOR_COLORS } from "../calendarConstants";
 import { EventModal } from "./EventModal";
 import { QuickCreateModal } from "./QuickCreateModal";
-import { Calendar, List, LayoutGrid, Filter, Loader2 } from "lucide-react";
+import { Filter, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface Client  { id: string; name: string }
 interface Collab  { id: string; name: string; role: string; email: string | null }
 interface Service { id: string; name: string; duration: number }
-interface Resource { id: string; name: string; type: string }
+interface Resource { id: string; name: string; type: string; capacity: number }
 
 interface Props {
   clientes: Client[];
@@ -323,4 +323,3 @@ export function AgendamentoCalendar({ clientes, colaboradores, servicos, recurso
     </div>
   );
 }
-

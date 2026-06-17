@@ -40,13 +40,13 @@ export default async function ComissoesPage() {
           </div>
           <div className="rounded-xl border border-green-200 bg-white p-4 flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Faturado</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Valor em atendimentos</p>
               <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-green-100">
                 <TrendingUp className="w-4 h-4 text-green-600" />
               </div>
             </div>
             <p className="text-2xl font-bold text-green-700">{formatCurrency(totalFaturado)}</p>
-            <p className="text-xs text-gray-400">em serviços concluídos</p>
+            <p className="text-xs text-gray-400">em serviços concluídos não cancelados</p>
           </div>
           <div className="rounded-xl border border-purple-200 bg-white p-4 flex flex-col gap-2">
             <div className="flex items-center justify-between">
@@ -140,4 +140,3 @@ export default async function ComissoesPage() {
     </div>
   );
 }
-

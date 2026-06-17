@@ -36,7 +36,7 @@ type AgendamentoWithRelations = Appointment & {
   client:       Pick<Client, "id" | "name">;
   collaborator: Pick<Collaborator, "id" | "name">;
   service:      Pick<Service, "id" | "name">;
-  resources:    { resource: Pick<Resource, "id" | "name" | "type"> }[];
+  resources:    { resource: Pick<Resource, "id" | "name" | "type" | "capacity"> }[];
 };
 
 interface AgendamentoFormProps {
@@ -44,7 +44,7 @@ interface AgendamentoFormProps {
   clientes:      Pick<Client, "id" | "name">[];
   colaboradores: Pick<Collaborator, "id" | "name" | "role">[];
   servicos:      Pick<Service, "id" | "name" | "duration">[];
-  recursos:      Pick<Resource, "id" | "name" | "type">[];
+  recursos:      Pick<Resource, "id" | "name" | "type" | "capacity">[];
 }
 
 // ── Helpers de data ───────────────────────────────────────────────────────────
@@ -104,6 +104,8 @@ export function AgendamentoForm({
   // ── Disponibilidade de recursos: quais estão ocupados no intervalo escolhido
   const [occupiedIds, setOccupiedIds] = useState<string[]>([]);
   const [occupiedBy,  setOccupiedBy]  = useState<Record<string, string>>({});
+  const [occupiedTimeRange, setOccupiedTimeRange] = useState<Record<string, string>>({});
+  const [occupiedCollaborator, setOccupiedCollaborator] = useState<Record<string, string>>({});
   const [checkingAvailability, setCheckingAvailability] = useState(false);
 
   // ── Recursos — estado controlado
@@ -117,8 +119,11 @@ export function AgendamentoForm({
     const srv = servicos.find((s) => s.id === serviceId);
     if (!srv) return;
     const end = addMinutes(startDate, startTime, srv.duration);
-    setEndDate(end.date);
-    setEndTime(end.time);
+    const timer = window.setTimeout(() => {
+      setEndDate(end.date);
+      setEndTime(end.time);
+    }, 0);
+    return () => window.clearTimeout(timer);
   // Só disparar quando serviceId, startDate ou startTime mudam
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serviceId, startDate, startTime]);
@@ -128,20 +133,29 @@ export function AgendamentoForm({
     const startISO = combineISO(startDate, startTime);
     const endISO   = combineISO(endDate, endTime);
     if (!startISO || !endISO || startISO >= endISO) {
-      setOccupiedIds([]);
-      setOccupiedBy({});
-      return;
+      const timer = window.setTimeout(() => {
+        setOccupiedIds([]);
+        setOccupiedBy({});
+        setOccupiedTimeRange({});
+        setOccupiedCollaborator({});
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
-    setCheckingAvailability(true);
-    checkResourcesAvailabilityAction(startISO, endISO, agendamento?.id)
-      .then(({ occupiedIds, occupiedBy }) => {
-        setOccupiedIds(occupiedIds);
-        setOccupiedBy(occupiedBy);
-        // Remover recursos que ficaram ocupados da selecção actual
-        setSelectedResources((prev) => prev.filter((id) => !occupiedIds.includes(id)));
-      })
-      .finally(() => setCheckingAvailability(false));
-  }, [startDate, startTime, endDate, endTime, agendamento?.id]);
+    const timer = window.setTimeout(() => {
+      setCheckingAvailability(true);
+      checkResourcesAvailabilityAction(startISO, endISO, agendamento?.id)
+        .then(({ occupiedIds, occupiedBy, occupiedTimeRange, occupiedCollaborator }) => {
+          setOccupiedIds(occupiedIds);
+          setOccupiedBy(occupiedBy);
+          setOccupiedTimeRange(occupiedTimeRange);
+          setOccupiedCollaborator(occupiedCollaborator);
+          // Remover recursos que ficaram ocupados da selecção actual
+          setSelectedResources((prev) => prev.filter((id) => !occupiedIds.includes(id)));
+        })
+        .finally(() => setCheckingAvailability(false));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [startDate, startTime, endDate, endTime, collaboratorId, agendamento?.id]);
 
   const toggleResource = useCallback((id: string) => {
     setSelectedResources((prev) =>
@@ -164,6 +178,10 @@ export function AgendamentoForm({
     if (!startISO)       { setError("Preencha a data e hora de início.");         return; }
     if (!endISO)         { setError("Preencha a data e hora de término.");        return; }
     if (startISO >= endISO) { setError("O término deve ser após o início.");      return; }
+    if (selectedResources.some((id) => occupiedIds.includes(id))) {
+      setError("A sala/equipamento selecionado já está reservado neste horário.");
+      return;
+    }
 
     const fd = new FormData();
     fd.set("clientId",       clientId);
@@ -343,6 +361,8 @@ export function AgendamentoForm({
                     const checked  = selectedResources.includes(r.id);
                     const occupied = occupiedIds.includes(r.id);
                     const bookedBy = occupiedBy[r.id];
+                    const bookedRange = occupiedTimeRange[r.id];
+                    const bookedCollaborator = occupiedCollaborator[r.id];
 
                     if (occupied) {
                       // ── Card bloqueado ──────────────────────────────────
@@ -350,16 +370,23 @@ export function AgendamentoForm({
                         <div
                           key={r.id}
                           title={bookedBy ? `Reservado por: ${bookedBy}` : "Já reservado neste horário"}
-                          className="flex items-center gap-3 w-full px-3.5 py-3 rounded-xl border
-                            border-red-200 bg-red-50/60 text-red-400 text-sm cursor-not-allowed select-none"
+                          className="flex items-start gap-3 w-full px-3.5 py-3 rounded-xl border
+                            border-red-200 bg-red-50/60 text-red-500 text-sm cursor-not-allowed select-none"
                         >
-                          <Lock className="w-4 h-4 shrink-0 text-red-400" />
-                          <span className="flex-1 line-through">{r.name}</span>
-                          {bookedBy && (
-                            <span className="text-[10px] font-medium text-red-400 shrink-0">
-                              {bookedBy}
-                            </span>
-                          )}
+                          <Lock className="w-4 h-4 shrink-0 text-red-500 mt-0.5" />
+                          <span className="flex-1 min-w-0">
+                            <span className="block font-medium line-through">{r.name}</span>
+                            {bookedRange && (
+                              <span className="block text-[11px] text-red-500">
+                                Ocupada das {bookedRange.replace("-", " às ")}
+                              </span>
+                            )}
+                            {bookedBy && (
+                              <span className="block text-[11px] text-red-400">
+                                Reservada por {bookedBy}{bookedCollaborator ? ` / ${bookedCollaborator}` : ""}
+                              </span>
+                            )}
+                          </span>
                         </div>
                       );
                     }

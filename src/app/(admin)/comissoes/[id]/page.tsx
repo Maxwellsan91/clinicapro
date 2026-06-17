@@ -65,14 +65,21 @@ function resolvePeriod(
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  paid:    { label: "Pago",      color: "bg-green-100 text-green-700",   icon: CheckCircle },
-  pending: { label: "Pendente",  color: "bg-yellow-100 text-yellow-700", icon: Clock },
-  overdue: { label: "Em atraso", color: "bg-red-100 text-red-700",       icon: AlertCircle },
+  paid:      { label: "Pago",      color: "bg-green-100 text-green-700",   icon: CheckCircle },
+  pending:   { label: "Pendente",  color: "bg-yellow-100 text-yellow-700", icon: Clock },
+  partial:   { label: "Parcial",   color: "bg-blue-100 text-blue-700",     icon: AlertCircle },
+  cancelled: { label: "Cancelado", color: "bg-gray-100 text-gray-700",     icon: AlertCircle },
+  overdue:   { label: "Em atraso", color: "bg-red-100 text-red-700",       icon: AlertCircle },
 };
 
 const PAYMENT_TYPE_CONFIG = {
   payment: { label: "Pagamento", icon: Banknote, color: "bg-green-100 text-green-700" },
   advance: { label: "Adiantamento", icon: Gift,  color: "bg-blue-100 text-blue-700" },
+};
+
+const PAYMENT_ALLOCATION_CONFIG = {
+  current_period: { label: "Período atual", color: "bg-purple-100 text-purple-700" },
+  previous_balance: { label: "Pendência anterior", color: "bg-red-100 text-red-700" },
 };
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -142,19 +149,36 @@ export default async function ComissaoColaboradorPage({ params, searchParams }: 
         </Suspense>
 
         {/* KPI cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-8 gap-4">
           {[
             { label: "Atendimentos",        value: String(totals.totalAtendimentos),            icon: Calendar,      iconBg: "bg-blue-50",   iconColor: "text-blue-600",   border: "border-blue-100" },
-            { label: "Total Faturado",       value: formatCurrency(totals.totalFaturado),        icon: TrendingUp,    iconBg: "bg-green-50",  iconColor: "text-green-600",  border: "border-green-100" },
+            { label: "Valor em atendimentos", value: formatCurrency(totals.totalFaturado),        icon: TrendingUp,    iconBg: "bg-green-50",  iconColor: "text-green-600",  border: "border-green-100" },
             { label: "Comissão gerada",      value: formatCurrency(totals.totalComissao),        icon: DollarSign,    iconBg: "bg-purple-50", iconColor: "text-purple-600", border: "border-purple-100" },
-            { label: "Já pago ao colaborador", value: formatCurrency(totals.totalPagoAoColaborador), icon: Banknote, iconBg: "bg-teal-50",   iconColor: "text-teal-600",   border: "border-teal-100" },
+            { label: "Já pago do período", value: formatCurrency(totals.totalPagoAoColaborador), icon: Banknote, iconBg: "bg-teal-50",   iconColor: "text-teal-600",   border: "border-teal-100" },
+            { label: "Pago pendência anterior", value: formatCurrency(totals.totalPagoPendenciaAnteriorNoPeriodo), icon: Banknote, iconBg: "bg-red-50",   iconColor: "text-red-600",   border: "border-red-100" },
             {
-              label: totals.saldoDevido >= 0 ? "Saldo a pagar" : "Adiantamento em excesso",
+              label: totals.saldoDevido >= 0 ? "Saldo do período" : "Adiantamento no período",
               value: formatCurrency(Math.abs(totals.saldoDevido)),
               icon: Wallet,
               iconBg: totals.saldoDevido > 0 ? "bg-orange-50" : "bg-gray-50",
               iconColor: totals.saldoDevido > 0 ? "text-orange-600" : "text-gray-400",
               border: totals.saldoDevido > 0 ? "border-orange-200" : "border-gray-100",
+            },
+            {
+              label: totals.saldoAnterior >= 0 ? "Pendência anterior" : "Crédito anterior",
+              value: formatCurrency(Math.abs(totals.saldoAnterior)),
+              icon: AlertCircle,
+              iconBg: totals.saldoAnterior > 0 ? "bg-red-50" : "bg-gray-50",
+              iconColor: totals.saldoAnterior > 0 ? "text-red-600" : "text-gray-400",
+              border: totals.saldoAnterior > 0 ? "border-red-200" : "border-gray-100",
+            },
+            {
+              label: totals.saldoTotalEmAberto >= 0 ? "Total em aberto" : "Crédito total",
+              value: formatCurrency(Math.abs(totals.saldoTotalEmAberto)),
+              icon: Wallet,
+              iconBg: totals.saldoTotalEmAberto > 0 ? "bg-slate-100" : "bg-gray-50",
+              iconColor: totals.saldoTotalEmAberto > 0 ? "text-slate-700" : "text-gray-400",
+              border: "border-slate-200",
             },
           ].map((card) => {
             const Icon = card.icon;
@@ -178,11 +202,12 @@ export default async function ComissaoColaboradorPage({ params, searchParams }: 
             <div className="flex items-center gap-2">
               <Wallet className="w-4 h-4 text-gray-400" />
               <h2 className="text-sm font-semibold text-gray-700">Pagamentos ao colaborador</h2>
-              <span className="text-xs text-gray-400 font-normal">(todos os períodos)</span>
+              <span className="text-xs text-gray-400 font-normal">({label})</span>
             </div>
             <RegisterCommissionPaymentModal
               colaboradorId={colaborador.id}
-              saldoDevido={totals.saldoDevido}
+              saldoPeriodo={totals.saldoDevido}
+              saldoAnterior={totals.saldoAnterior}
             />
           </div>
 
@@ -198,6 +223,7 @@ export default async function ComissaoColaboradorPage({ params, searchParams }: 
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold text-gray-600">Data</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-600">Tipo</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Referente a</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-600">Notas</th>
                     <th className="px-4 py-3 text-right font-semibold text-gray-600">Valor</th>
                     <th className="px-4 py-3" />
@@ -206,6 +232,9 @@ export default async function ComissaoColaboradorPage({ params, searchParams }: 
                 <tbody className="divide-y divide-gray-50">
                   {pagamentosEfetuados.map((pag) => {
                     const cfg = PAYMENT_TYPE_CONFIG[pag.type as keyof typeof PAYMENT_TYPE_CONFIG] ?? PAYMENT_TYPE_CONFIG.payment;
+                    const allocationCfg =
+                      PAYMENT_ALLOCATION_CONFIG[pag.allocationType as keyof typeof PAYMENT_ALLOCATION_CONFIG] ??
+                      PAYMENT_ALLOCATION_CONFIG.current_period;
                     const Icon = cfg.icon;
                     return (
                       <tr key={pag.id} className="hover:bg-gray-50 transition-colors">
@@ -216,6 +245,11 @@ export default async function ComissaoColaboradorPage({ params, searchParams }: 
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg.color}`}>
                             <Icon className="w-3 h-3" />
                             {cfg.label}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${allocationCfg.color}`}>
+                            {allocationCfg.label}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-gray-500 max-w-xs truncate">
@@ -233,11 +267,11 @@ export default async function ComissaoColaboradorPage({ params, searchParams }: 
                 </tbody>
                 <tfoot className="bg-gray-50 border-t-2 border-gray-200">
                   <tr>
-                    <td colSpan={3} className="px-4 py-3 font-semibold text-gray-700">
-                      Total pago
+                    <td colSpan={4} className="px-4 py-3 font-semibold text-gray-700">
+                      Total pago neste período
                     </td>
                     <td className="px-4 py-3 text-right font-bold text-teal-700">
-                      {formatCurrency(totals.totalPagoAoColaborador)}
+                      {formatCurrency(totals.totalPagoNoPeriodo)}
                     </td>
                     <td />
                   </tr>
@@ -280,6 +314,8 @@ export default async function ComissaoColaboradorPage({ params, searchParams }: 
                     const paymentStatus = row.payments.length === 0 ? null
                       : row.payments.every((p) => p.status === "paid") ? "paid"
                       : row.payments.some((p) => p.status === "pending") ? "pending"
+                      : row.payments.some((p) => p.status === "partial") ? "partial"
+                      : row.payments.some((p) => p.status === "cancelled") ? "cancelled"
                       : row.payments[0].status;
                     const statusCfg  = paymentStatus ? STATUS_CONFIG[paymentStatus] : null;
                     const StatusIcon = statusCfg?.icon;
@@ -293,7 +329,14 @@ export default async function ComissaoColaboradorPage({ params, searchParams }: 
                         <td className="px-4 py-3 text-gray-600">{row.serviceName}</td>
                         <td className="px-4 py-3 text-right text-gray-500">{row.serviceDuration} min</td>
                         <td className="px-4 py-3 text-right font-medium text-gray-900">
-                          {row.totalPago > 0 ? formatCurrency(row.totalPago) : <span className="text-gray-400">—</span>}
+                          {row.totalPrevisto > 0 ? (
+                            <div>
+                              <p>{formatCurrency(row.totalPrevisto)}</p>
+                              {row.totalPago > 0 && (
+                                <p className="text-xs text-green-600">Recebido: {formatCurrency(row.totalPago)}</p>
+                              )}
+                            </div>
+                          ) : <span className="text-gray-400">—</span>}
                         </td>
                         <td className="px-4 py-3 text-right">
                           {statusCfg && StatusIcon ? (

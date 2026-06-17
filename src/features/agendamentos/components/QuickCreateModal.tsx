@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 interface Client    { id: string; name: string }
 interface Collab    { id: string; name: string; role: string }
 interface Service   { id: string; name: string; duration: number }
-interface Resource  { id: string; name: string; type: string }
+interface Resource  { id: string; name: string; type: string; capacity: number }
 
 interface Props {
   open: boolean;
@@ -79,6 +79,8 @@ export function QuickCreateModal({
   const [selectedResources, setSelectedResources] = useState<string[]>([]);
   const [occupiedIds, setOccupiedIds] = useState<string[]>([]);
   const [occupiedBy, setOccupiedBy]   = useState<Record<string, string>>({});
+  const [occupiedTimeRange, setOccupiedTimeRange] = useState<Record<string, string>>({});
+  const [occupiedCollaborator, setOccupiedCollaborator] = useState<Record<string, string>>({});
   const [checkingRes, setCheckingRes] = useState(false);
 
   const toggleResource = useCallback((id: string) => {
@@ -91,11 +93,15 @@ export function QuickCreateModal({
   useEffect(() => {
     const s = splitDT(defaultStart);
     const e = splitDT(defaultEnd);
-    setStartDate(s.date); setStartTime(s.time);
-    setEndDate(e.date);   setEndTime(e.time);
-    setClientId(""); setCollaboratorId(""); setServiceId("");
-    setNotes(""); setOverlap(null);
-    setSelectedResources([]); setOccupiedIds([]); setOccupiedBy({});
+    const timer = window.setTimeout(() => {
+      setStartDate(s.date); setStartTime(s.time);
+      setEndDate(e.date);   setEndTime(e.time);
+      setClientId(""); setCollaboratorId(""); setServiceId("");
+      setNotes(""); setOverlap(null);
+      setSelectedResources([]); setOccupiedIds([]); setOccupiedBy({});
+      setOccupiedTimeRange({}); setOccupiedCollaborator({});
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [defaultStart, defaultEnd, open]);
 
   // Auto-calcular fim quando serviço muda
@@ -105,7 +111,10 @@ export function QuickCreateModal({
       const srv = servicos.find((s) => s.id === serviceId);
       if (srv) {
         const e = addMinutes(start, srv.duration);
-        setEndDate(e.date); setEndTime(e.time);
+        const timer = window.setTimeout(() => {
+          setEndDate(e.date); setEndTime(e.time);
+        }, 0);
+        return () => window.clearTimeout(timer);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -115,27 +124,46 @@ export function QuickCreateModal({
   useEffect(() => {
     const start = combineDT(startDate, startTime);
     const end   = combineDT(endDate, endTime);
-    if (!collaboratorId || !start || !end) { setOverlap(null); return; }
-    setChecking(true);
-    checkOverlapAction(collaboratorId, new Date(start).toISOString(), new Date(end).toISOString())
-      .then((r) => setOverlap(r.hasOverlap ? (r.conflictWith ?? "outro agendamento") : null))
-      .finally(() => setChecking(false));
+    if (!collaboratorId || !start || !end) {
+      const timer = window.setTimeout(() => setOverlap(null), 0);
+      return () => window.clearTimeout(timer);
+    }
+    const timer = window.setTimeout(() => {
+      setChecking(true);
+      checkOverlapAction(collaboratorId, new Date(start).toISOString(), new Date(end).toISOString())
+        .then((r) => setOverlap(r.hasOverlap ? (r.conflictWith ?? "outro agendamento") : null))
+        .finally(() => setChecking(false));
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [collaboratorId, startDate, startTime, endDate, endTime]);
 
   // Verificar disponibilidade de recursos
   useEffect(() => {
     const start = combineDT(startDate, startTime);
     const end   = combineDT(endDate, endTime);
-    if (!start || !end || start >= end) { setOccupiedIds([]); setOccupiedBy({}); return; }
-    setCheckingRes(true);
-    checkResourcesAvailabilityAction(start, end)
-      .then(({ occupiedIds, occupiedBy }) => {
-        setOccupiedIds(occupiedIds);
-        setOccupiedBy(occupiedBy);
-        setSelectedResources((prev) => prev.filter((id) => !occupiedIds.includes(id)));
-      })
-      .finally(() => setCheckingRes(false));
-  }, [startDate, startTime, endDate, endTime]);
+    if (!start || !end || start >= end) {
+      const timer = window.setTimeout(() => {
+        setOccupiedIds([]);
+        setOccupiedBy({});
+        setOccupiedTimeRange({});
+        setOccupiedCollaborator({});
+      }, 0);
+      return () => window.clearTimeout(timer);
+    }
+    const timer = window.setTimeout(() => {
+      setCheckingRes(true);
+      checkResourcesAvailabilityAction(start, end)
+        .then(({ occupiedIds, occupiedBy, occupiedTimeRange, occupiedCollaborator }) => {
+          setOccupiedIds(occupiedIds);
+          setOccupiedBy(occupiedBy);
+          setOccupiedTimeRange(occupiedTimeRange);
+          setOccupiedCollaborator(occupiedCollaborator);
+          setSelectedResources((prev) => prev.filter((id) => !occupiedIds.includes(id)));
+        })
+        .finally(() => setCheckingRes(false));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [startDate, startTime, endDate, endTime, collaboratorId]);
 
   if (!open) return null;
 
@@ -153,6 +181,10 @@ export function QuickCreateModal({
     if (!start || !end) { toast.error("Preencha a data e hora de início e fim."); return; }
     if (start >= end)   { toast.error("O término deve ser após o início.");       return; }
     if (overlap)        { toast.error("Há sobreposição de horário. Corrija antes de guardar."); return; }
+    if (selectedResources.some((id) => occupiedIds.includes(id))) {
+      toast.error("A sala/equipamento selecionado já está reservado neste horário.");
+      return;
+    }
 
     const fd = new FormData();
     fd.set("clientId", clientId);
@@ -260,14 +292,28 @@ export function QuickCreateModal({
                         const checked  = selectedResources.includes(r.id);
                         const occupied = occupiedIds.includes(r.id);
                         const bookedBy = occupiedBy[r.id];
+                        const bookedRange = occupiedTimeRange[r.id];
+                        const bookedCollaborator = occupiedCollaborator[r.id];
 
                         if (occupied) {
                           return (
                             <div key={r.id}
                               title={bookedBy ? `Reservado por: ${bookedBy}` : "Já reservado neste horário"}
-                              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 bg-red-50 text-red-400 text-xs cursor-not-allowed select-none">
-                              <Lock className="w-3.5 h-3.5 shrink-0" />
-                              <span className="flex-1 line-through truncate">{r.name}</span>
+                              className="flex items-start gap-2 px-3 py-2 rounded-lg border border-red-200 bg-red-50 text-red-500 text-xs cursor-not-allowed select-none">
+                              <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                              <span className="flex-1 min-w-0">
+                                <span className="block font-medium line-through truncate">{r.name}</span>
+                                {bookedRange && (
+                                  <span className="block text-[10px] text-red-500">
+                                    Ocupada das {bookedRange.replace("-", " às ")}
+                                  </span>
+                                )}
+                                {bookedBy && (
+                                  <span className="block text-[10px] text-red-400 truncate">
+                                    {bookedBy}{bookedCollaborator ? ` / ${bookedCollaborator}` : ""}
+                                  </span>
+                                )}
+                              </span>
                             </div>
                           );
                         }
@@ -336,4 +382,3 @@ function Field({ label, children, required }: { label: string; children: React.R
     </div>
   );
 }
-
