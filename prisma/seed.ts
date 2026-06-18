@@ -1,7 +1,10 @@
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg({
+  connectionString: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
+});
 const prisma = new PrismaClient({ adapter });
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -37,6 +40,9 @@ const IDS = {
   // recursos
   res1: "res-seed-001", res2: "res-seed-002", res3: "res-seed-003",
   res4: "res-seed-004", res5: "res-seed-005", res6: "res-seed-006",
+  // turmas pilates
+  pil1: "pil-seed-001", pil2: "pil-seed-002", pil3: "pil-seed-003",
+  pil4: "pil-seed-004", pil5: "pil-seed-005",
   // agendamentos
   apt1: "apt-seed-001", apt2: "apt-seed-002", apt3: "apt-seed-003",
   apt4: "apt-seed-004", apt5: "apt-seed-005", apt6: "apt-seed-006",
@@ -188,6 +194,61 @@ async function main() {
     }),
   ]);
   console.log("✅  6 recursos criados (salas + ginásio)");
+
+  // ── 4.1. Turmas de Pilates ────────────────────────────────────────────────
+  const pilatesSeeds = [
+    { id: IDS.pil1, name: "Turma 1", capacity: 13, schedules: [[1, "19:15"], [4, "19:15"]] },
+    { id: IDS.pil2, name: "Turma 2", capacity: 10, schedules: [[2, "10:15"], [4, "10:15"]] },
+    { id: IDS.pil3, name: "Turma 3", capacity: 10, schedules: [[2, "11:15"], [4, "11:15"]] },
+    { id: IDS.pil4, name: "Turma 4", capacity: 10, schedules: [[2, "18:15"], [4, "18:15"]] },
+    { id: IDS.pil5, name: "Turma 5", capacity: 10, schedules: [[3, "18:15"], [5, "18:15"]] },
+  ] as const;
+
+  for (const turma of pilatesSeeds) {
+    await prisma.pilatesClass.upsert({
+      where: { id: turma.id },
+      update: {
+        name: turma.name,
+        capacity: turma.capacity,
+        serviceId: IDS.svc2,
+        collaboratorId: IDS.col2,
+        resourceId: IDS.res5,
+        isActive: true,
+      },
+      create: {
+        id: turma.id,
+        tenantId: TENANT_ID,
+        name: turma.name,
+        capacity: turma.capacity,
+        serviceId: IDS.svc2,
+        collaboratorId: IDS.col2,
+        resourceId: IDS.res5,
+        isActive: true,
+        notes: "Turma demo criada pelo seed. Pode ser alterada pelo administrador.",
+      },
+    });
+
+    for (const [dayOfWeek, startTime] of turma.schedules) {
+      await prisma.pilatesClassSchedule.upsert({
+        where: {
+          classId_dayOfWeek_startTime: {
+            classId: turma.id,
+            dayOfWeek,
+            startTime,
+          },
+        },
+        update: { duration: 50 },
+        create: {
+          tenantId: TENANT_ID,
+          classId: turma.id,
+          dayOfWeek,
+          startTime,
+          duration: 50,
+        },
+      });
+    }
+  }
+  console.log("✅  5 turmas de Pilates demo criadas");
 
   // ── 5. Clientes ────────────────────────────────────────────────────────────
   await Promise.all([

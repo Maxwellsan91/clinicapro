@@ -12,7 +12,9 @@ export type AuditAction =
   | "MARK_PENDING"
   | "CANCEL"
   | "GENERATE_MONTH"
-  | "COPY_MONTH";
+  | "COPY_MONTH"
+  | "PAUSE"
+  | "REACTIVATE";
 
 export type AuditEntity =
   | "Cliente"
@@ -23,7 +25,8 @@ export type AuditEntity =
   | "Utilizador"
   | "CategoriaFinanceira"
   | "LancamentoFinanceiro"
-  | "ResumoFinanceiro";
+  | "ResumoFinanceiro"
+  | "TurmaPilates";
 
 export interface AuditLogInput {
   userId: string;

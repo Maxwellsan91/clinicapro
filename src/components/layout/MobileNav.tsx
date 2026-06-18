@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, UserCog, Briefcase, Calendar, Activity,
   CreditCard, Percent, ShieldCheck, ClipboardList, Bell, DoorOpen,
-  Menu, X, LogOut, Landmark,
+  Menu, X, LogOut, Landmark, Dumbbell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/features/auth/actions";
@@ -18,6 +18,7 @@ const commonNavItems = [
   { href: "/servicos",      label: "Serviços",        icon: Briefcase },
   { href: "/recursos",      label: "Recursos",        icon: DoorOpen },
   { href: "/agendamentos",  label: "Agendamentos",   icon: Calendar },
+  { href: "/pilates/turmas", label: "Turmas de Pilates", icon: Dumbbell },
 ];
 
 const adminNavItems = [

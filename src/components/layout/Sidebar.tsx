@@ -9,6 +9,7 @@ import {
   Briefcase,
   Calendar,
   Activity,
+  Dumbbell,
   CreditCard,
   Percent,
   ShieldCheck,
@@ -27,6 +28,7 @@ const commonNavItems = [
   { href: "/servicos",      label: "Serviços",         icon: Briefcase },
   { href: "/recursos",      label: "Recursos",         icon: DoorOpen },
   { href: "/agendamentos",  label: "Agendamentos",    icon: Calendar },
+  { href: "/pilates/turmas", label: "Turmas de Pilates", icon: Dumbbell },
 ];
 
 const adminNavItems = [

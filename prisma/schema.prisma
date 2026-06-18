@@ -12,59 +12,65 @@ datasource db {
 }
 
 model Tenant {
-  id            String         @id @default(cuid())
-  name          String
-  slug          String         @unique
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  clients       Client[]
-  collaborators Collaborator[]
-  services      Service[]
-  appointments  Appointment[]
-  payments      Payment[]
-  resources     Resource[]
-  financialCategories FinancialCategory[]
-  financialEntries FinancialEntry[]
-  financialMonthlySummaries FinancialMonthlySummary[]
+  id                         String                      @id @default(cuid())
+  name                       String
+  slug                       String                      @unique
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  clients                    Client[]
+  collaborators              Collaborator[]
+  services                   Service[]
+  appointments               Appointment[]
+  payments                   Payment[]
+  resources                  Resource[]
+  pilatesClasses             PilatesClass[]
+  pilatesClassSchedules      PilatesClassSchedule[]
+  pilatesClassEnrollments    PilatesClassEnrollment[]
+  pilatesClassEnrollmentDays PilatesClassEnrollmentDay[]
+  financialCategories        FinancialCategory[]
+  financialEntries           FinancialEntry[]
+  financialMonthlySummaries  FinancialMonthlySummary[]
 }
 
 model Client {
-  id           String        @id @default(cuid())
-  tenantId     String
-  name         String
-  email        String?
-  phone        String?
-  birthDate    DateTime?
-  cpf          String?
-  address      String?
-  notes        String?
-  isDeleted    Boolean       @default(false)
-  deletedAt    DateTime?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  tenant       Tenant        @relation(fields: [tenantId], references: [id])
-  appointments Appointment[]
-  payments     Payment[]
+  id                      String                   @id @default(cuid())
+  tenantId                String
+  name                    String
+  email                   String?
+  phone                   String?
+  birthDate               DateTime?
+  cpf                     String?
+  address                 String?
+  notes                   String?
+  isDeleted               Boolean                  @default(false)
+  deletedAt               DateTime?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  tenant                  Tenant                   @relation(fields: [tenantId], references: [id])
+  appointments            Appointment[]
+  payments                Payment[]
+  pilatesClassEnrollments PilatesClassEnrollment[]
 
   @@index([tenantId])
 }
 
 model Collaborator {
-  id             String        @id @default(cuid())
-  tenantId       String
-  name           String
-  email          String?
-  phone          String?
-  role           String
-  specialty      String?
-  commissionRate Decimal?      @db.Decimal(5, 2)
-  isDeleted      Boolean       @default(false)
-  deletedAt      DateTime?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  tenant              Tenant               @relation(fields: [tenantId], references: [id])
-  appointments        Appointment[]
-  commissionPayments  CommissionPayment[]
+  id                 String              @id @default(cuid())
+  tenantId           String
+  name               String
+  email              String?
+  phone              String?
+  role               String
+  specialty          String?
+  commissionRate     Decimal?            @db.Decimal(5, 2)
+  isDeleted          Boolean             @default(false)
+  deletedAt          DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  tenant             Tenant              @relation(fields: [tenantId], references: [id])
+  appointments       Appointment[]
+  pilatesClasses     PilatesClass[]
+  commissionPayments CommissionPayment[]
 
   @@index([tenantId])
 }
@@ -89,42 +95,43 @@ model CommissionPayment {
 }
 
 model Service {
-  id           String        @id @default(cuid())
-  tenantId     String
-  name         String
-  description  String?
-  duration     Int
-  price        Decimal       @db.Decimal(10, 2)
-  category     String?
-  isActive     Boolean       @default(true)
-  isDeleted    Boolean       @default(false)
-  deletedAt    DateTime?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  tenant       Tenant        @relation(fields: [tenantId], references: [id])
-  appointments Appointment[]
+  id             String         @id @default(cuid())
+  tenantId       String
+  name           String
+  description    String?
+  duration       Int
+  price          Decimal        @db.Decimal(10, 2)
+  category       String?
+  isActive       Boolean        @default(true)
+  isDeleted      Boolean        @default(false)
+  deletedAt      DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  tenant         Tenant         @relation(fields: [tenantId], references: [id])
+  appointments   Appointment[]
+  pilatesClasses PilatesClass[]
 
   @@index([tenantId])
 }
 
 model Appointment {
-  id             String       @id @default(cuid())
+  id             String                @id @default(cuid())
   tenantId       String
   clientId       String
   collaboratorId String
   serviceId      String
   startDateTime  DateTime
   endDateTime    DateTime
-  status         String       @default("scheduled")
+  status         String                @default("scheduled")
   notes          String?
-  isDeleted      Boolean      @default(false)
+  isDeleted      Boolean               @default(false)
   deletedAt      DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  tenant         Tenant       @relation(fields: [tenantId], references: [id])
-  client         Client       @relation(fields: [clientId], references: [id])
-  collaborator   Collaborator @relation(fields: [collaboratorId], references: [id])
-  service        Service      @relation(fields: [serviceId], references: [id])
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  tenant         Tenant                @relation(fields: [tenantId], references: [id])
+  client         Client                @relation(fields: [clientId], references: [id])
+  collaborator   Collaborator          @relation(fields: [collaboratorId], references: [id])
+  service        Service               @relation(fields: [serviceId], references: [id])
   payments       Payment[]
   resources      AppointmentResource[]
 
@@ -136,18 +143,18 @@ model Appointment {
 }
 
 model Notification {
-  id          String    @id @default(cuid())
-  tenantId    String
-  type        String    // appointment_reminder | payment_pending | appointment_cancelled
-  recipient   String    // email address
-  title       String
-  message     String
-  status      String    @default("pending") // pending | sent | failed | cancelled
+  id            String    @id @default(cuid())
+  tenantId      String
+  type          String // appointment_reminder | payment_pending | appointment_cancelled
+  recipient     String // email address
+  title         String
+  message       String
+  status        String    @default("pending") // pending | sent | failed | cancelled
   appointmentId String?
-  sentAt      DateTime?
-  errorMessage String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  sentAt        DateTime?
+  errorMessage  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([tenantId])
   @@index([status])
@@ -157,15 +164,15 @@ model Notification {
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
-  tenantId   String
-  userId     String
-  userEmail  String?
-  action     String
-  entity     String
-  entityId   String?
-  metadata   Json?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  userEmail String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
 
   @@index([tenantId])
   @@index([userId])
@@ -174,26 +181,26 @@ model AuditLog {
 }
 
 model Payment {
-  id                  String      @id @default(cuid())
-  tenantId            String
-  clientId            String
-  appointmentId       String?
-  amount              Decimal     @db.Decimal(10, 2)
-  paymentMethod       String?
-  status              String      @default("pending")
-  paidAt              DateTime?
-  dueDate             DateTime?
-  notes               String?
-  invoiceStatus       String      @default("not_issued")
-  invoiceExternalUrl  String?
-  invoiceNumber       String?
-  isDeleted           Boolean     @default(false)
-  deletedAt           DateTime?
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
-  tenant              Tenant      @relation(fields: [tenantId], references: [id])
-  client              Client      @relation(fields: [clientId], references: [id])
-  appointment         Appointment? @relation(fields: [appointmentId], references: [id])
+  id                 String       @id @default(cuid())
+  tenantId           String
+  clientId           String
+  appointmentId      String?
+  amount             Decimal      @db.Decimal(10, 2)
+  paymentMethod      String?
+  status             String       @default("pending")
+  paidAt             DateTime?
+  dueDate            DateTime?
+  notes              String?
+  invoiceStatus      String       @default("not_issued")
+  invoiceExternalUrl String?
+  invoiceNumber      String?
+  isDeleted          Boolean      @default(false)
+  deletedAt          DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  tenant             Tenant       @relation(fields: [tenantId], references: [id])
+  client             Client       @relation(fields: [clientId], references: [id])
+  appointment        Appointment? @relation(fields: [appointmentId], references: [id])
 
   @@index([tenantId])
   @@index([clientId])
@@ -203,38 +210,39 @@ model Payment {
 }
 
 model Resource {
-  id           String               @id @default(cuid())
-  tenantId     String
-  name         String
-  type         String               // room | equipment | gym
-  capacity     Int                  @default(1)
-  isActive     Boolean              @default(true)
-  isDeleted    Boolean              @default(false)
-  deletedAt    DateTime?
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
-  tenant       Tenant               @relation(fields: [tenantId], references: [id])
-  appointments AppointmentResource[]
+  id             String                @id @default(cuid())
+  tenantId       String
+  name           String
+  type           String // room | equipment | gym
+  capacity       Int                   @default(1)
+  isActive       Boolean               @default(true)
+  isDeleted      Boolean               @default(false)
+  deletedAt      DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  tenant         Tenant                @relation(fields: [tenantId], references: [id])
+  appointments   AppointmentResource[]
+  pilatesClasses PilatesClass[]
 
   @@index([tenantId])
 }
 
 model FinancialCategory {
-  id           String   @id @default(cuid())
-  tenantId     String
-  name         String
-  group        String
-  type         String
-  calculationType String @default("operational_expense")
-  defaultValue Decimal? @db.Decimal(10, 2)
-  order        Int      @default(0)
-  isActive     Boolean  @default(true)
-  isDeleted    Boolean  @default(false)
-  deletedAt    DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
-  entries      FinancialEntry[]
+  id              String           @id @default(cuid())
+  tenantId        String
+  name            String
+  group           String
+  type            String
+  calculationType String           @default("operational_expense")
+  defaultValue    Decimal?         @db.Decimal(10, 2)
+  order           Int              @default(0)
+  isActive        Boolean          @default(true)
+  isDeleted       Boolean          @default(false)
+  deletedAt       DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  entries         FinancialEntry[]
 
   @@index([tenantId])
   @@index([group])
@@ -244,18 +252,18 @@ model FinancialCategory {
 }
 
 model FinancialEntry {
-  id           String   @id @default(cuid())
+  id           String            @id @default(cuid())
   tenantId     String
   categoryId   String
   year         Int
   month        Int
-  plannedValue Decimal? @db.Decimal(10, 2)
-  actualValue  Decimal? @db.Decimal(10, 2)
+  plannedValue Decimal?          @db.Decimal(10, 2)
+  actualValue  Decimal?          @db.Decimal(10, 2)
   description  String?
   notes        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  tenant       Tenant            @relation(fields: [tenantId], references: [id])
   category     FinancialCategory @relation(fields: [categoryId], references: [id])
 
   @@unique([tenantId, categoryId, year, month])
@@ -290,4 +298,88 @@ model AppointmentResource {
   resource      Resource    @relation(fields: [resourceId], references: [id])
 
   @@unique([appointmentId, resourceId])
+}
+
+model PilatesClass {
+  id             String                   @id @default(cuid())
+  tenantId       String
+  name           String
+  serviceId      String?
+  collaboratorId String?
+  resourceId     String?
+  capacity       Int
+  isActive       Boolean                  @default(true)
+  notes          String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  tenant         Tenant                   @relation(fields: [tenantId], references: [id])
+  service        Service?                 @relation(fields: [serviceId], references: [id])
+  collaborator   Collaborator?            @relation(fields: [collaboratorId], references: [id])
+  resource       Resource?                @relation(fields: [resourceId], references: [id])
+  schedules      PilatesClassSchedule[]
+  enrollments    PilatesClassEnrollment[]
+
+  @@index([tenantId])
+  @@index([serviceId])
+  @@index([collaboratorId])
+  @@index([resourceId])
+}
+
+model PilatesClassSchedule {
+  id             String                      @id @default(cuid())
+  tenantId       String
+  classId        String
+  dayOfWeek      Int
+  startTime      String
+  duration       Int
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+  tenant         Tenant                      @relation(fields: [tenantId], references: [id])
+  pilatesClass   PilatesClass                @relation(fields: [classId], references: [id], onDelete: Cascade)
+  enrollmentDays PilatesClassEnrollmentDay[]
+
+  @@unique([classId, dayOfWeek, startTime])
+  @@index([tenantId])
+  @@index([classId])
+}
+
+model PilatesClassEnrollment {
+  id           String                      @id @default(cuid())
+  tenantId     String
+  classId      String
+  clientId     String
+  frequency    String
+  status       String                      @default("active")
+  startDate    DateTime?
+  endDate      DateTime?
+  notes        String?
+  createdAt    DateTime                    @default(now())
+  updatedAt    DateTime                    @updatedAt
+  tenant       Tenant                      @relation(fields: [tenantId], references: [id])
+  pilatesClass PilatesClass                @relation(fields: [classId], references: [id], onDelete: Cascade)
+  client       Client                      @relation(fields: [clientId], references: [id])
+  days         PilatesClassEnrollmentDay[]
+
+  @@index([tenantId])
+  @@index([classId])
+  @@index([clientId])
+  @@index([status])
+}
+
+model PilatesClassEnrollmentDay {
+  id           String                 @id @default(cuid())
+  tenantId     String
+  enrollmentId String
+  scheduleId   String
+  slotNumber   Int
+  createdAt    DateTime               @default(now())
+  tenant       Tenant                 @relation(fields: [tenantId], references: [id])
+  enrollment   PilatesClassEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  schedule     PilatesClassSchedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, slotNumber])
+  @@unique([enrollmentId, scheduleId])
+  @@index([tenantId])
+  @@index([enrollmentId])
+  @@index([scheduleId])
 }
